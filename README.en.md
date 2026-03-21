@@ -2,8 +2,6 @@
 
 > **SGProxy is a stripped-down version of [gproxy](https://github.com/LeenHawk/gproxy)**, keeping only ClaudeCode single-channel + native Anthropic format. Need multi-channel (Codex, OpenAI, etc.) or format conversions? Use the full-featured **[gproxy](https://github.com/LeenHawk/gproxy)**.
 
-[![GitHub stars](https://img.shields.io/github/stars/LeenHawk/gproxy?style=social&label=Star%20gproxy)](https://github.com/LeenHawk/gproxy)
-
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/leenhawk)
 
 A ClaudeCode credential gateway built on Cloudflare Workers + Durable Objects, with OAuth import, credential rotation, quota inspection, and header-only `/v1/*` proxying.
