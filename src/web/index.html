@@ -1,0 +1,1023 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>sgproxy</title>
+    <style>
+      :root {
+        --bg: #f3efe7;
+        --panel: rgba(255, 255, 255, 0.78);
+        --ink: #1b1d20;
+        --muted: #586068;
+        --accent: #0f766e;
+        --accent-strong: #115e59;
+        --danger: #b91c1c;
+        --line: rgba(27, 29, 32, 0.12);
+        --shadow: 0 18px 40px rgba(35, 34, 31, 0.1);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        min-height: 100vh;
+      }
+
+      body {
+        margin: 0;
+        font-family: "IBM Plex Sans", "SF Pro Text", "Segoe UI", sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at top left, rgba(15, 118, 110, 0.16), transparent 34%),
+          radial-gradient(circle at bottom right, rgba(180, 83, 9, 0.16), transparent 32%),
+          linear-gradient(180deg, #f8f4ec 0%, var(--bg) 100%);
+      }
+
+      .shell {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 24px 18px 40px;
+      }
+
+      .hero {
+        padding: 18px 4px 24px;
+      }
+
+      .hero-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      h1 {
+        margin: 10px 0 8px;
+        font-size: clamp(34px, 6vw, 64px);
+        line-height: 0.95;
+      }
+
+      .byline {
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.5;
+      }
+
+      .card {
+        background: var(--panel);
+        backdrop-filter: blur(14px);
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        box-shadow: var(--shadow);
+        padding: 18px;
+      }
+
+      .card h2 {
+        margin: 0 0 14px;
+        font-size: 18px;
+      }
+
+      .stack {
+        display: grid;
+        gap: 12px;
+      }
+
+      label {
+        display: grid;
+        gap: 6px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      input,
+      textarea,
+      button {
+        font: inherit;
+      }
+
+      input,
+      textarea {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 14px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.84);
+        color: var(--ink);
+      }
+
+      textarea {
+        min-height: 96px;
+        resize: vertical;
+      }
+
+      .row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      button {
+        border: 0;
+        border-radius: 999px;
+        padding: 10px 16px;
+        background: var(--accent);
+        color: white;
+        cursor: pointer;
+      }
+
+      button.secondary {
+        background: rgba(17, 24, 39, 0.08);
+        color: var(--ink);
+      }
+
+      button.danger {
+        background: var(--danger);
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      .toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 18px;
+      }
+
+      .toolbar-title {
+        font-size: 14px;
+        color: var(--muted);
+      }
+
+      .tabs {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 18px;
+      }
+
+      .tab {
+        background: rgba(17, 24, 39, 0.08);
+        color: var(--ink);
+      }
+
+      .tab.active {
+        background: var(--accent);
+        color: white;
+      }
+
+      .lang-switch {
+        display: flex;
+        gap: 8px;
+      }
+
+      .lang-switch button.active {
+        background: var(--accent);
+        color: white;
+      }
+
+      .mono {
+        font-family: "IBM Plex Mono", "SFMono-Regular", monospace;
+      }
+
+      .status {
+        padding: 10px 12px;
+        border-radius: 14px;
+        background: rgba(15, 118, 110, 0.08);
+        color: var(--accent-strong);
+        font-size: 13px;
+      }
+
+      .error {
+        background: rgba(185, 28, 28, 0.08);
+        color: var(--danger);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th,
+      td {
+        text-align: left;
+        font-size: 13px;
+        padding: 10px 8px;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+      }
+
+      .pill {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: rgba(17, 24, 39, 0.08);
+        font-size: 12px;
+      }
+
+      .usage-stack {
+        display: grid;
+        gap: 10px;
+        min-width: 240px;
+      }
+
+      .usage-row {
+        display: grid;
+        gap: 4px;
+      }
+
+      .usage-meta {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .usage-bar {
+        position: relative;
+        height: 10px;
+        border-radius: 999px;
+        overflow: hidden;
+        background: rgba(17, 24, 39, 0.08);
+      }
+
+      .usage-fill {
+        height: 100%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #0f766e 0%, #d97706 100%);
+      }
+
+      .usage-reset {
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      details summary {
+        cursor: pointer;
+      }
+
+      pre {
+        white-space: pre-wrap;
+        word-break: break-word;
+        margin: 8px 0 0;
+        font-size: 12px;
+      }
+
+      @media (max-width: 820px) {
+        .toolbar {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+
+        table,
+        thead,
+        tbody,
+        tr,
+        td,
+        th {
+          display: block;
+        }
+
+        thead {
+          display: none;
+        }
+
+        tr {
+          padding: 12px 0;
+          border-bottom: 1px solid var(--line);
+        }
+
+        td {
+          border: 0;
+          padding: 6px 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <section class="hero">
+        <div class="hero-top">
+          <div class="lang-switch">
+            <button id="langZh" type="button" class="secondary">中文</button>
+            <button id="langEn" type="button" class="secondary">EN</button>
+          </div>
+        </div>
+        <h1 id="heroTitle">SGPROXY</h1>
+        <div class="byline">LeenHawk &lt;leenhawk@leenhawk.com&gt;</div>
+      </section>
+
+      <section id="loginView" class="card">
+        <h2 id="loginTitle">Login</h2>
+        <div class="stack">
+          <label id="adminTokenLabel">Admin Token <input id="adminToken" class="mono" placeholder="Bearer token" /></label>
+          <div class="row">
+            <button id="saveToken">Login</button>
+          </div>
+          <div id="loginBanner" class="status"></div>
+        </div>
+      </section>
+
+      <section id="appView" class="hidden">
+        <div class="toolbar">
+          <div class="toolbar-title mono" id="sessionTokenPreview"></div>
+          <div class="row">
+            <button id="reloadAll" class="secondary">Refresh Limits</button>
+            <button id="logout" class="secondary admin-only">Logout</button>
+          </div>
+        </div>
+
+        <div id="appBanner" class="status" style="margin-bottom: 18px">Ready.</div>
+
+        <div class="tabs">
+          <button class="tab active admin-only" data-tab="configPanel">Config</button>
+          <button class="tab admin-only" data-tab="oauthPanel">OAuth</button>
+          <button class="tab" data-tab="credentialsPanel">Credentials</button>
+        </div>
+
+        <section id="configPanel" class="card tab-panel">
+          <h2 id="configTitle">Config</h2>
+          <div class="stack">
+            <label id="hostLabel">Host <input id="host" /></label>
+            <label id="portLabel">Port <input id="port" type="number" /></label>
+            <label id="proxyLabel">Proxy <input id="proxy" placeholder="http://127.0.0.1:7890 or socks5h://127.0.0.1:1080" /></label>
+            <div class="row">
+              <button id="saveConfig">Save Config</button>
+            </div>
+          </div>
+        </section>
+
+        <section id="oauthPanel" class="card tab-panel hidden">
+          <h2 id="oauthTitle">OAuth Import</h2>
+          <div class="stack">
+            <div class="row">
+              <button id="startOauth">Start OAuth</button>
+            </div>
+            <label id="callbackLabel">Callback URL or Claude Code <textarea id="callbackUrl" class="mono"></textarea></label>
+            <div class="row">
+              <button id="completeOauth">Complete OAuth</button>
+            </div>
+          </div>
+        </section>
+
+        <section id="credentialsPanel" class="card tab-panel hidden">
+          <h2 id="credentialsTitle">Credentials</h2>
+          <div class="stack">
+            <div class="stack admin-only">
+              <label id="importLabel">Import JSON <textarea id="importJson" class="mono"></textarea></label>
+              <div class="row">
+                <button id="importCredential">Import Credential</button>
+              </div>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Email</th>
+                  <th>Status</th>
+                  <th>Limits</th>
+                  <th class="admin-only">JSON</th>
+                  <th class="admin-only">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="credentialRows"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+    </div>
+
+    <script>
+      window.__SGPROXY_VIEW_MODE = "__SGPROXY_VIEW_MODE__";
+
+      const VIEW_MODE = window.__SGPROXY_VIEW_MODE || "admin";
+      const IS_USAGE_VIEW = VIEW_MODE === "usage";
+      const PUBLIC_API_BASE = "/api/public";
+      const API_BASE = IS_USAGE_VIEW ? PUBLIC_API_BASE : "/api";
+
+      const adminTokenEl = document.getElementById("adminToken");
+      const loginViewEl = document.getElementById("loginView");
+      const appViewEl = document.getElementById("appView");
+      const loginBannerEl = document.getElementById("loginBanner");
+      const appBannerEl = document.getElementById("appBanner");
+      const sessionTokenPreviewEl = document.getElementById("sessionTokenPreview");
+      const credentialRowsEl = document.getElementById("credentialRows");
+      const tabButtons = Array.from(document.querySelectorAll(".tab"));
+      const tabPanels = Array.from(document.querySelectorAll(".tab-panel"));
+      const adminOnlyEls = Array.from(document.querySelectorAll(".admin-only"));
+      const langZhEl = document.getElementById("langZh");
+      const langEnEl = document.getElementById("langEn");
+
+      const configFields = {
+        host: document.getElementById("host"),
+        port: document.getElementById("port"),
+        proxy: document.getElementById("proxy")
+      };
+
+      const oauthFields = {
+        callbackUrl: document.getElementById("callbackUrl")
+      };
+
+      const importFields = {
+        importJson: document.getElementById("importJson")
+      };
+
+      const I18N = {
+        zh: {
+          heroTitle: "SGPROXY",
+          heroTitleUsage: "SGPROXY 限额",
+          loginTitle: "登录",
+          adminTokenLabel: "管理令牌",
+          saveToken: "登录",
+          reloadAll: "刷新限额",
+          logout: "退出",
+          tabConfig: "配置",
+          tabOAuth: "OAuth",
+          tabCredentials: "凭证",
+          configTitle: "配置",
+          hostLabel: "监听地址",
+          portLabel: "端口",
+          proxyLabel: "代理",
+          saveConfig: "保存配置",
+          oauthTitle: "OAuth",
+          startOauth: "开始 OAuth",
+          callbackLabel: "回调链接或 Claude Code",
+          completeOauth: "完成 OAuth",
+          credentialsTitle: "凭证",
+          usageTitle: "限额",
+          importLabel: "导入凭证 JSON",
+          importCredential: "导入凭证",
+          thEmail: "邮箱",
+          thStatus: "状态",
+          thUsage: "限额",
+          thJson: "JSON",
+          thActions: "操作",
+          usageView: "限额视图",
+          keyPrefix: "密钥: ",
+          ready: "就绪。",
+          usageRefreshed: "限额已刷新。",
+          loaded: "配置和限额已加载。",
+          copied: "凭证 JSON 已复制。",
+          usageLoaded: "限额已加载。",
+          saved: "配置已保存。",
+          oauthStarted: "OAuth 已开始。",
+          oauthSaved: "OAuth 凭证已保存。",
+          importSaved: "凭证已导入。",
+          loginHint: "",
+          logoutHint: "",
+          detailsJson: "查看凭证",
+          detailsUsage: "查看限额",
+          loading: "加载中...",
+          actionDisable: "停用",
+          actionEnable: "启用",
+          actionCopy: "复制",
+          actionDelete: "删除",
+          statusHealthy: "健康",
+          statusCooldown5h: "五小时冷却",
+          statusCooldownSonnet7d: "七天 Sonnet 冷却",
+          statusCooldown7d: "七天冷却",
+          statusDead: "死亡",
+          statusUntil: "至",
+          statusReset: "重置于",
+          statusNoReset: "无重置窗口",
+          usage5h: "5小时",
+          usage7d: "7天",
+          usage7dSonnet: "7天 Sonnet",
+          callbackPlaceholder: "粘贴code",
+          proxyPlaceholder: "http://127.0.0.1:7890 或 socks5h://127.0.0.1:1080",
+          importPlaceholder: "{\n  \"refresh_token\": \"sk-ant-ort01-...\",\n  \"access_token\": \"sk-ant-oat01-...\"\n}"
+        },
+        en: {
+          heroTitle: "SGPROXY",
+          heroTitleUsage: "SGPROXY LIMITS",
+          loginTitle: "Login",
+          adminTokenLabel: "Admin Token",
+          saveToken: "Login",
+          reloadAll: "Refresh Limits",
+          logout: "Logout",
+          tabConfig: "Config",
+          tabOAuth: "OAuth",
+          tabCredentials: "Credentials",
+          configTitle: "Config",
+          hostLabel: "Host",
+          portLabel: "Port",
+          proxyLabel: "Proxy",
+          saveConfig: "Save Config",
+          oauthTitle: "OAuth",
+          startOauth: "Start OAuth",
+          callbackLabel: "Callback URL or Claude Code",
+          completeOauth: "Complete OAuth",
+          credentialsTitle: "Credentials",
+          usageTitle: "Limits",
+          importLabel: "Import Credential JSON",
+          importCredential: "Import Credential",
+          thEmail: "Email",
+          thStatus: "Status",
+          thUsage: "Limits",
+          thJson: "JSON",
+          thActions: "Actions",
+          usageView: "limits view",
+          keyPrefix: "key: ",
+          ready: "Ready.",
+          usageRefreshed: "Limits refreshed.",
+          loaded: "Loaded config and limits.",
+          copied: "Credential JSON copied.",
+          usageLoaded: "Limits loaded.",
+          saved: "Config saved.",
+          oauthStarted: "OAuth started.",
+          oauthSaved: "OAuth credential saved.",
+          importSaved: "Credential imported.",
+          loginHint: "",
+          logoutHint: "",
+          detailsJson: "view credential",
+          detailsUsage: "view limits",
+          loading: "loading...",
+          actionDisable: "Disable",
+          actionEnable: "Enable",
+          actionCopy: "Copy",
+          actionDelete: "Delete",
+          statusHealthy: "healthy",
+          statusCooldown5h: "5h cooldown",
+          statusCooldownSonnet7d: "7d Sonnet cooldown",
+          statusCooldown7d: "7d cooldown",
+          statusDead: "dead",
+          statusUntil: "until",
+          statusReset: "reset",
+          statusNoReset: "no reset window",
+          usage5h: "5h",
+          usage7d: "7d",
+          usage7dSonnet: "7d sonnet",
+          callbackPlaceholder: "paste code",
+          proxyPlaceholder: "http://127.0.0.1:7890 or socks5h://127.0.0.1:1080",
+          importPlaceholder: "{\n  \"refresh_token\": \"sk-ant-ort01-...\",\n  \"access_token\": \"sk-ant-oat01-...\"\n}"
+        }
+      };
+
+      const storedLang = localStorage.getItem("sgproxy_lang");
+      let currentLang = storedLang === "zh" || storedLang === "en"
+        ? storedLang
+        : ((navigator.language || "").toLowerCase().startsWith("zh") ? "zh" : "en");
+      let lastCredentials = [];
+      let bannerState = { message: "", isError: false, translate: false };
+
+      adminTokenEl.value = localStorage.getItem("sgproxy_admin_token") || "";
+      applyMode();
+      applyLanguage();
+      applyAuthState();
+
+      function t(key) {
+        return I18N[currentLang][key] || I18N.en[key] || key;
+      }
+
+      function setLanguage(lang) {
+        currentLang = lang === "zh" ? "zh" : "en";
+        localStorage.setItem("sgproxy_lang", currentLang);
+        applyLanguage();
+        applyMode();
+        applyAuthState();
+      }
+
+      function applyLanguage() {
+        document.documentElement.lang = currentLang;
+        document.getElementById("heroTitle").textContent = IS_USAGE_VIEW ? t("heroTitleUsage") : t("heroTitle");
+        document.getElementById("loginTitle").textContent = t("loginTitle");
+        document.getElementById("adminTokenLabel").childNodes[0].textContent = t("adminTokenLabel") + " ";
+        adminTokenEl.placeholder = "Bearer token";
+        document.getElementById("saveToken").textContent = t("saveToken");
+        document.getElementById("reloadAll").textContent = t("reloadAll");
+        document.getElementById("logout").textContent = t("logout");
+        document.querySelector('[data-tab="configPanel"]').textContent = t("tabConfig");
+        document.querySelector('[data-tab="oauthPanel"]').textContent = t("tabOAuth");
+        document.querySelector('[data-tab="credentialsPanel"]').textContent = t("tabCredentials");
+        document.getElementById("configTitle").textContent = t("configTitle");
+        document.getElementById("hostLabel").childNodes[0].textContent = t("hostLabel") + " ";
+        document.getElementById("portLabel").childNodes[0].textContent = t("portLabel") + " ";
+        document.getElementById("proxyLabel").childNodes[0].textContent = t("proxyLabel") + " ";
+        configFields.proxy.placeholder = t("proxyPlaceholder");
+        document.getElementById("saveConfig").textContent = t("saveConfig");
+        document.getElementById("oauthTitle").textContent = t("oauthTitle");
+        document.getElementById("startOauth").textContent = t("startOauth");
+        document.getElementById("callbackLabel").childNodes[0].textContent = t("callbackLabel") + " ";
+        oauthFields.callbackUrl.placeholder = t("callbackPlaceholder");
+        document.getElementById("completeOauth").textContent = t("completeOauth");
+        document.getElementById("credentialsTitle").textContent = IS_USAGE_VIEW ? t("usageTitle") : t("credentialsTitle");
+        document.getElementById("importLabel").childNodes[0].textContent = t("importLabel") + " ";
+        importFields.importJson.placeholder = t("importPlaceholder");
+        document.getElementById("importCredential").textContent = t("importCredential");
+        const ths = document.querySelectorAll("thead th");
+        ths[0].textContent = t("thEmail");
+        ths[1].textContent = t("thStatus");
+        ths[2].textContent = t("thUsage");
+        ths[3].textContent = t("thJson");
+        ths[4].textContent = t("thActions");
+        langZhEl.classList.toggle("active", currentLang === "zh");
+        langEnEl.classList.toggle("active", currentLang === "en");
+        renderBanner();
+        if (lastCredentials.length) {
+          renderCredentials(lastCredentials);
+        }
+      }
+
+      function applyMode() {
+        if (IS_USAGE_VIEW) {
+          document.getElementById("heroTitle").textContent = t("heroTitleUsage");
+          document.getElementById("credentialsTitle").textContent = t("usageTitle");
+          for (const element of adminOnlyEls) {
+            element.classList.add("hidden");
+          }
+          setActiveTab("credentialsPanel");
+        }
+      }
+
+      function setBanner(message, isError = false) {
+        bannerState = { message, isError, translate: false };
+        renderBanner();
+      }
+
+      function setBannerKey(key, isError = false) {
+        bannerState = { message: key, isError, translate: true };
+        renderBanner();
+      }
+
+      function renderBanner() {
+        const banner = IS_USAGE_VIEW || isAuthenticated() ? appBannerEl : loginBannerEl;
+        banner.textContent = bannerState.translate ? t(bannerState.message) : bannerState.message;
+        banner.className = bannerState.isError ? "status error" : "status";
+      }
+
+      function isAuthenticated() {
+        if (IS_USAGE_VIEW) {
+          return true;
+        }
+        return Boolean(adminTokenEl.value.trim());
+      }
+
+      function applyAuthState() {
+        const authenticated = isAuthenticated();
+        loginViewEl.classList.toggle("hidden", authenticated);
+        appViewEl.classList.toggle("hidden", !authenticated);
+        const token = adminTokenEl.value.trim();
+        sessionTokenPreviewEl.textContent = IS_USAGE_VIEW
+          ? t("usageView")
+          : token
+            ? t("keyPrefix") + token
+            : "";
+      }
+
+      function setActiveTab(id) {
+        for (const button of tabButtons) {
+          button.classList.toggle("active", button.dataset.tab === id);
+        }
+        for (const panel of tabPanels) {
+          panel.classList.toggle("hidden", panel.id !== id);
+        }
+      }
+
+      function populateOauthCallbackFromLocation() {
+        const current = new URL(window.location.href);
+        const code = current.searchParams.get("code");
+        const state = current.searchParams.get("state");
+        if (code || state) {
+          oauthFields.callbackUrl.value = current.toString();
+          setActiveTab("oauthPanel");
+        }
+      }
+
+      async function api(path, options = {}) {
+        const token = adminTokenEl.value.trim();
+        const headers = new Headers(options.headers || {});
+        headers.set("content-type", "application/json");
+        if (!IS_USAGE_VIEW && token) {
+          headers.set("authorization", "Bearer " + token);
+        }
+        const response = await fetch(path, { ...options, headers });
+        if (!response.ok) {
+          const payload = await response.json().catch(() => ({ error: response.statusText }));
+          if (!IS_USAGE_VIEW && response.status === 401) {
+            localStorage.removeItem("sgproxy_admin_token");
+            adminTokenEl.value = "";
+            applyAuthState();
+          }
+          throw new Error(payload.error || response.statusText);
+        }
+        return response.json();
+      }
+
+      async function reloadAll() {
+        if (!isAuthenticated()) {
+          return;
+        }
+        try {
+          if (IS_USAGE_VIEW) {
+            const usageViews = await api(API_BASE + "/credentials");
+            renderCredentials(usageViews);
+            setBannerKey("usageRefreshed");
+            return;
+          }
+
+          const [config, credentials] = await Promise.all([
+            api(API_BASE + "/config"),
+            api(API_BASE + "/credentials")
+          ]);
+          configFields.host.value = config.host;
+          configFields.port.value = config.port;
+          configFields.proxy.value = config.proxy || "";
+          renderCredentials(credentials);
+          setBannerKey("loaded");
+        } catch (error) {
+          setBanner(error.message, true);
+        }
+      }
+
+      function renderCredentials(credentials) {
+        lastCredentials = Array.isArray(credentials) ? credentials : [];
+        credentialRowsEl.innerHTML = "";
+        for (const item of lastCredentials) {
+          const row = document.createElement("tr");
+          const email = item.user_email || item.id;
+          const rawJson = JSON.stringify(buildCredentialJson(item), null, 2);
+          row.innerHTML = `
+            <td>${escapeHtml(email)}</td>
+            <td>${renderStatusCell(item)}</td>
+            <td>${renderUsageCell(item)}</td>
+            <td class="admin-only">${IS_USAGE_VIEW ? "" : renderJsonCell(rawJson)}</td>
+            <td class="admin-only row"></td>
+          `;
+          const actions = row.querySelector("td:last-child");
+          if (!IS_USAGE_VIEW && actions) {
+            const toggle = document.createElement("button");
+            toggle.textContent = item.enabled ? t("actionDisable") : t("actionEnable");
+            toggle.onclick = async () => {
+              await api(API_BASE + "/credentials/" + item.id + "/" + (item.enabled ? "disable" : "enable"), {
+                method: "POST",
+                body: "{}"
+              });
+              reloadAll();
+            };
+
+            const copy = document.createElement("button");
+            copy.textContent = t("actionCopy");
+            copy.className = "secondary";
+            copy.onclick = async () => {
+              await navigator.clipboard.writeText(rawJson);
+              setBannerKey("copied");
+            };
+
+            const remove = document.createElement("button");
+            remove.textContent = t("actionDelete");
+            remove.className = "danger";
+            remove.onclick = async () => {
+              await api(API_BASE + "/credentials/" + item.id, { method: "DELETE", body: "{}" });
+              reloadAll();
+            };
+            actions.append(toggle, copy, remove);
+          }
+          const usageDetails = row.querySelector("details[data-usage-id]");
+          if (usageDetails) {
+            usageDetails.ontoggle = () => {
+              if (usageDetails.open) {
+                loadUsageDetails(usageDetails);
+              }
+            };
+          }
+          credentialRowsEl.append(row);
+        }
+      }
+
+      function renderJsonCell(rawJson) {
+        return `
+          <details>
+            <summary class="mono">${escapeHtml(t("detailsJson"))}</summary>
+            
+            <pre class="mono">${escapeHtml(rawJson)}</pre>
+          </details>
+        `;
+      }
+
+      function renderStatusCell(item) {
+        const status = formatStatusLabel(String(item.status || "healthy"));
+        const resetAt = item.cooldown_until_unix_ms ? formatUnixMs(item.cooldown_until_unix_ms) : null;
+        const error = item.last_error ? `<div class="usage-reset">${escapeHtml(item.last_error)}</div>` : "";
+        const reset = resetAt ? `<div class="usage-reset">${escapeHtml(t("statusUntil"))} ${escapeHtml(resetAt)}</div>` : "";
+        return `<span class="pill">${escapeHtml(status)}</span>${reset}${error}`;
+      }
+
+      function renderUsageCell(item) {
+        if (!IS_USAGE_VIEW) {
+          return `
+            <details data-usage-id="${escapeHtml(item.id)}">
+              <summary class="mono">${escapeHtml(t("detailsUsage"))}</summary>
+              <div class="usage-stack" data-usage-content>${escapeHtml(t("loading"))}</div>
+            </details>
+          `;
+        }
+        const usage = item.usage || {};
+        const rows = [
+          renderUsageRow(t("usage5h"), usage.five_hour || {}),
+          renderUsageRow(t("usage7d"), usage.seven_day || {}),
+          renderUsageRow(t("usage7dSonnet"), usage.seven_day_sonnet || {})
+        ].filter(Boolean);
+        const error = usage.last_error
+          ? `<div class="usage-reset">${escapeHtml(usage.last_error)}</div>`
+          : "";
+        return `<div class="usage-stack">${rows.join("")}${error}</div>`;
+      }
+
+      async function loadUsageDetails(detailsEl) {
+        if (detailsEl.dataset.loaded === "true" || detailsEl.dataset.loading === "true") {
+          return;
+        }
+        detailsEl.dataset.loading = "true";
+        const contentEl = detailsEl.querySelector("[data-usage-content]");
+        try {
+          const item = await api(API_BASE + "/credentials/usage/" + detailsEl.dataset.usageId);
+          if (contentEl) {
+            contentEl.innerHTML = renderUsageContent(item.usage || {});
+          }
+          detailsEl.dataset.loaded = "true";
+          setBannerKey("usageLoaded");
+        } catch (error) {
+          if (contentEl) {
+            contentEl.textContent = error.message;
+          }
+        } finally {
+          detailsEl.dataset.loading = "false";
+        }
+      }
+
+      function renderUsageContent(usage) {
+        const rows = [
+          renderUsageRow(t("usage5h"), usage.five_hour || {}),
+          renderUsageRow(t("usage7d"), usage.seven_day || {}),
+          renderUsageRow(t("usage7dSonnet"), usage.seven_day_sonnet || {})
+        ].filter(Boolean);
+        const error = usage.last_error
+          ? `<div class="usage-reset">${escapeHtml(usage.last_error)}</div>`
+          : "";
+        return `${rows.join("")}${error}`;
+      }
+
+      function buildCredentialJson(item) {
+        return {
+          access_token: item.access_token ?? null,
+          refresh_token: item.refresh_token ?? null,
+          expires_at_unix_ms: item.expires_at_unix_ms ?? null,
+          user_email: item.user_email ?? null,
+          organization_uuid: item.organization_uuid ?? null,
+          subscription_type: item.subscription_type ?? null,
+          rate_limit_tier: item.rate_limit_tier ?? null,
+          status: item.status ?? null
+        };
+      }
+
+      function renderUsageRow(label, bucket) {
+        const pct = clampPercent(bucket.utilization_pct);
+        const reset = bucket.resets_at ? formatDateString(bucket.resets_at) : null;
+        return `
+          <div class="usage-row">
+            <div class="usage-meta">
+              <span>${escapeHtml(label)}</span>
+              <span>${pct === null ? "--" : pct + "%"}</span>
+            </div>
+            <div class="usage-bar"><div class="usage-fill" style="width:${pct === null ? 0 : pct}%"></div></div>
+            <div class="usage-reset">${reset ? escapeHtml(t("statusReset")) + " " + escapeHtml(reset) : escapeHtml(t("statusNoReset"))}</div>
+          </div>
+        `;
+      }
+
+      function formatStatusLabel(status) {
+        if (status === "healthy") return t("statusHealthy");
+        if (status === "cooldown_5h") return t("statusCooldown5h");
+        if (status === "cooldown_sonnet_7d") return t("statusCooldownSonnet7d");
+        if (status === "cooldown_7d" || status === "cooldown_all_7d") return t("statusCooldown7d");
+        if (status === "dead") return t("statusDead");
+        return status;
+      }
+
+      function clampPercent(value) {
+        if (value === null || value === undefined || value === "") {
+          return null;
+        }
+        const number = Number(value);
+        if (!Number.isFinite(number)) {
+          return null;
+        }
+        return Math.max(0, Math.min(100, Math.round(number)));
+      }
+
+      function formatDateString(value) {
+        const date = new Date(value);
+        return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+      }
+
+      function formatUnixMs(value) {
+        const date = new Date(Number(value));
+        return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString();
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;");
+      }
+
+      document.getElementById("saveToken").onclick = async () => {
+        localStorage.setItem("sgproxy_admin_token", adminTokenEl.value.trim());
+        applyAuthState();
+        await reloadAll();
+      };
+
+      langZhEl.onclick = () => setLanguage("zh");
+      langEnEl.onclick = () => setLanguage("en");
+
+      document.getElementById("reloadAll").onclick = reloadAll;
+      document.getElementById("logout").onclick = () => {
+        localStorage.removeItem("sgproxy_admin_token");
+        adminTokenEl.value = "";
+        applyAuthState();
+        setBannerKey("logoutHint");
+      };
+
+      for (const button of tabButtons) {
+        button.onclick = () => setActiveTab(button.dataset.tab);
+      }
+
+      document.getElementById("saveConfig").onclick = async () => {
+        try {
+          await api(API_BASE + "/config", {
+            method: "PUT",
+            body: JSON.stringify({
+              host: configFields.host.value.trim(),
+              port: Number(configFields.port.value),
+              proxy: configFields.proxy.value.trim() || null
+            })
+          });
+          setBannerKey("saved");
+          reloadAll();
+        } catch (error) {
+          setBanner(error.message, true);
+        }
+      };
+
+      document.getElementById("startOauth").onclick = async () => {
+        try {
+          const result = await api(API_BASE + "/oauth/start", {
+            method: "POST",
+            body: JSON.stringify({})
+          });
+          const opened = window.open(result.auth_url, "_blank", "noopener,noreferrer");
+          if (!opened) {
+            window.location.href = result.auth_url;
+          }
+          setBannerKey("oauthStarted");
+        } catch (error) {
+          setBanner(error.message, true);
+        }
+      };
+
+      document.getElementById("completeOauth").onclick = async () => {
+        try {
+          await api(API_BASE + "/oauth/callback", {
+            method: "POST",
+            body: JSON.stringify({ callback_url: oauthFields.callbackUrl.value.trim() })
+          });
+          oauthFields.callbackUrl.value = "";
+          setBannerKey("oauthSaved");
+          reloadAll();
+        } catch (error) {
+          setBanner(error.message, true);
+        }
+      };
+
+      document.getElementById("importCredential").onclick = async () => {
+        try {
+          const payload = JSON.parse(importFields.importJson.value.trim() || "{}");
+          await api(API_BASE + "/credentials", {
+            method: "POST",
+            body: JSON.stringify(payload)
+          });
+          importFields.importJson.value = "";
+          setBannerKey("importSaved");
+          reloadAll();
+        } catch (error) {
+          setBanner(error.message, true);
+        }
+      };
+
+      setBannerKey(IS_USAGE_VIEW || isAuthenticated() ? "ready" : "loginHint");
+
+      if (IS_USAGE_VIEW) {
+        reloadAll();
+      } else if (isAuthenticated()) {
+        populateOauthCallbackFromLocation();
+        reloadAll();
+      }
+    </script>
+  </body>
+</html>
