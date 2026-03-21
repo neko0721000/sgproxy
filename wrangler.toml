@@ -2,9 +2,6 @@ name = "sgproxy"
 main = "build/worker/shim.mjs"
 compatibility_date = "2026-03-21"
 
-[build]
-command = "cargo install -q worker-build && worker-build --release"
-
 [durable_objects]
 bindings = [{ name = "SGPROXY_STATE", class_name = "SgproxyState" }]
 

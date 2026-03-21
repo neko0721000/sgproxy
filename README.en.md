@@ -21,7 +21,7 @@ A ClaudeCode credential gateway built on Cloudflare Workers + Durable Objects, w
 
 - **Runtime**: Cloudflare Workers + Durable Objects (SQLite)
 - **Language**: Rust -> WebAssembly
-- **Build**: worker-build + Cargo
+- **Build**: generate `build/` locally with `worker-build`; the Deploy Button uses committed build artifacts
 
 ## Quick Start
 
@@ -44,6 +44,7 @@ Open `http://localhost:8787/`.
 ### Deploy
 
 ```bash
+worker-build --release
 wrangler deploy
 ```
 

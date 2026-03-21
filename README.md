@@ -21,7 +21,7 @@
 
 - **运行时**: Cloudflare Workers + Durable Objects (SQLite)
 - **语言**: Rust -> WebAssembly
-- **构建**: worker-build + Cargo
+- **构建**: 本地用 `worker-build` 生成 `build/`，Deploy Button 直接使用仓库内产物
 
 ## 快速开始
 
@@ -44,6 +44,7 @@ wrangler dev
 ### 部署
 
 ```bash
+worker-build --release
 wrangler deploy
 ```
 
