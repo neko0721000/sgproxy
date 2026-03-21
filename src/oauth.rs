@@ -12,8 +12,6 @@ use crate::config::{
 };
 use crate::state::{AppState, OAuthState, now_unix_ms};
 
-const TOKEN_USER_AGENT: &str = "claude-cli/2.1.76 (external, cli)";
-
 #[derive(Debug, Deserialize)]
 pub struct OAuthStartInput {
     pub redirect_uri: Option<String>,
@@ -80,11 +78,11 @@ pub async fn oauth_start(
     let config = state.config_snapshot().await;
     let redirect_uri = payload
         .redirect_uri
-        .and_then(|value| clean_opt(value))
+        .and_then(clean_opt)
         .unwrap_or_else(|| DEFAULT_REDIRECT_URI.to_string());
     let scope = payload
         .scope
-        .and_then(|value| clean_opt(value))
+        .and_then(clean_opt)
         .unwrap_or_else(|| CLAUDE_CODE_OAUTH_SCOPE.to_string());
     let state_id = generate_oauth_state();
     let code_verifier = generate_code_verifier();
@@ -245,7 +243,7 @@ pub async fn maybe_refresh_access_token(
         .header("content-type", "application/x-www-form-urlencoded")
         .header("accept", "application/json, text/plain, */*")
         .header("connection", "close")
-        .header("user-agent", TOKEN_USER_AGENT)
+        .header("user-agent", DEFAULT_USER_AGENT)
         .body(body)
         .send()
         .await
@@ -408,7 +406,7 @@ async fn exchange_code_for_tokens(
         .header("anthropic-beta", DEFAULT_REQUIRED_BETA)
         .header("content-type", "application/x-www-form-urlencoded")
         .header("accept", "application/json, text/plain, */*")
-        .header("user-agent", TOKEN_USER_AGENT)
+        .header("user-agent", DEFAULT_USER_AGENT)
         .header("origin", origin)
         .header("referer", format!("{origin}/"))
         .body(body)
@@ -432,15 +430,26 @@ pub(crate) async fn fetch_oauth_profile(
     access_token: &str,
 ) -> Result<OAuthProfileParsed> {
     let url = format!("{}/api/oauth/profile", api_base_url.trim_end_matches('/'));
-    let response = client
-        .get(url)
-        .header("authorization", format!("Bearer {access_token}"))
-        .header("user-agent", DEFAULT_USER_AGENT)
-        .header("accept", "application/json")
-        .header("connection", "close")
-        .header("anthropic-beta", DEFAULT_REQUIRED_BETA)
-        .send()
-        .await?;
+    let mut last_err = None;
+    let response = loop {
+        match client
+            .get(url.as_str())
+            .header("authorization", format!("Bearer {access_token}"))
+            .header("user-agent", DEFAULT_USER_AGENT)
+            .header("accept", "application/json")
+            .header("connection", "close")
+            .header("anthropic-beta", DEFAULT_REQUIRED_BETA)
+            .send()
+            .await
+        {
+            Ok(response) => break response,
+            Err(err) if last_err.is_none() => {
+                last_err = Some(err);
+                tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+            }
+            Err(err) => return Err(err.into()),
+        }
+    };
     let status = response.status();
     let bytes = response.bytes().await?;
     if !status.is_success() {
@@ -548,7 +557,7 @@ fn extract_inline_query_value(raw: &str, key: &str) -> Option<String> {
     let start = index + needle.len();
     let rest = &raw[start..];
     let end = rest
-        .find(|ch: char| matches!(ch, '&' | '#' | '"' | '\'' | ' ' | '\n' | '\r' | '\t'))
+        .find(['&', '#', '"', '\'', ' ', '\n', '\r', '\t'])
         .unwrap_or(rest.len());
     let value = rest[..end].trim();
     if value.is_empty() {
@@ -629,8 +638,8 @@ fn is_invalid_oauth_credential_failure(status: u16, error: &str, description: &s
 #[cfg(test)]
 mod tests {
     use super::{
-        extract_labeled_value, extract_manual_code, extract_value_from_text,
-        resolve_code_and_state, OAuthCallbackInput,
+        OAuthCallbackInput, extract_labeled_value, extract_manual_code, extract_value_from_text,
+        resolve_code_and_state,
     };
 
     #[test]
@@ -651,7 +660,10 @@ mod tests {
     #[test]
     fn extract_value_from_text_accepts_pasted_text_with_embedded_url() {
         let pasted = "paste this callback: https://platform.claude.com/oauth/code/callback?code=abc123&state=state456";
-        assert_eq!(extract_value_from_text(pasted, "code").as_deref(), Some("abc123"));
+        assert_eq!(
+            extract_value_from_text(pasted, "code").as_deref(),
+            Some("abc123")
+        );
         assert_eq!(
             extract_value_from_text(pasted, "state").as_deref(),
             Some("state456")

@@ -12,6 +12,7 @@ pub const CLAUDE_CODE_OAUTH_SCOPE: &str = "user:profile user:inference user:sess
 pub const OAUTH_STATE_TTL_MS: u64 = 600_000;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default)]
 pub struct ConfigFile {
     #[serde(default)]
     pub server: ServerConfig,
@@ -21,15 +22,6 @@ pub struct ConfigFile {
     pub credentials: Vec<CredentialConfig>,
 }
 
-impl Default for ConfigFile {
-    fn default() -> Self {
-        Self {
-            server: ServerConfig::default(),
-            upstream: UpstreamConfig::default(),
-            credentials: Vec::new(),
-        }
-    }
-}
 
 impl ConfigFile {
     pub fn normalize(&mut self) {
