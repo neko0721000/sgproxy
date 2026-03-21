@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>sgproxy</title>
+    <title>SGPROXY</title>
     <style>
       :root {
         --bg: #f6f3ec;
@@ -373,7 +373,6 @@
           enable: "启用",
           disable: "停用",
           credentialJson: "凭证 JSON",
-          usageJson: "限额",
           publicReady: "公开限额页",
           imported: "导入完成",
           opened: "已打开授权页",
@@ -404,7 +403,6 @@
           enable: "Enable",
           disable: "Disable",
           credentialJson: "Credential JSON",
-          usageJson: "Quota",
           publicReady: "Public quota page",
           imported: "Imported",
           opened: "Auth page opened",
@@ -516,7 +514,6 @@
         const toggleAction = item.enabled ? "disable" : "enable";
         const toggleLabel = item.enabled ? t("disable") : t("enable");
         const jsonText = JSON.stringify(item.json || {}, null, 2);
-        const usageText = JSON.stringify(item.usage || {}, null, 2);
         const email = item.user_email || item.id;
         return `
           <div class="credential">
@@ -540,10 +537,6 @@
             <details>
               <summary>${t("credentialJson")}</summary>
               <pre>${escapeHtml(jsonText)}</pre>
-            </details>
-            <details>
-              <summary>${t("usageJson")}</summary>
-              <pre>${escapeHtml(usageText)}</pre>
             </details>
           </div>
         `;
