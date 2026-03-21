@@ -111,7 +111,8 @@ impl AppState {
             .find(|item| item.id == id)
             .ok_or_else(|| anyhow!("credential not found: {id}"))?;
         let mut views = self.build_usage_views(vec![credential]).await?;
-        views.pop()
+        views
+            .pop()
             .ok_or_else(|| anyhow!("credential usage not found: {id}"))
     }
 
@@ -125,8 +126,11 @@ impl AppState {
     ) -> Result<Vec<UsageCredentialView>> {
         let mut views = Vec::with_capacity(credentials.len());
         for credential in credentials {
-            let usage = self.fetch_live_usage(credential.id.as_str(), credential.access_token.as_str()).await;
-            let (status, cooldown_until_unix_ms, last_error) = merge_status_for_view(&credential, &usage);
+            let usage = self
+                .fetch_live_usage(credential.id.as_str(), credential.access_token.as_str())
+                .await;
+            let (status, cooldown_until_unix_ms, last_error) =
+                merge_status_for_view(&credential, &usage);
             views.push(UsageCredentialView {
                 id: credential.id,
                 user_email: credential.user_email,
@@ -258,9 +262,8 @@ impl AppState {
         input: CredentialUpsertInput,
         existing: Option<&CredentialConfig>,
     ) -> Result<CredentialUpsertInput> {
-        let mut access_token = clean_opt_owned(input.access_token).or_else(|| {
-            existing.and_then(|item| clean_opt_owned(Some(item.access_token.clone())))
-        });
+        let mut access_token = clean_opt_owned(input.access_token)
+            .or_else(|| existing.and_then(|item| clean_opt_owned(Some(item.access_token.clone()))));
         let mut refresh_token = clean_opt_owned(input.refresh_token).or_else(|| {
             existing.and_then(|item| clean_opt_owned(Some(item.refresh_token.clone())))
         });
@@ -282,8 +285,10 @@ impl AppState {
 
         let config = self.config_snapshot().await;
         let client = self.client().await;
-        if let Some(refresh) = refresh_token.as_deref().filter(|value| !value.trim().is_empty()) {
-            if access_token.is_none() || expires_at_unix_ms.unwrap_or(0) <= now_unix_ms() {
+        if let Some(refresh) = refresh_token
+            .as_deref()
+            .filter(|value| !value.trim().is_empty())
+            && (access_token.is_none() || expires_at_unix_ms.unwrap_or(0) <= now_unix_ms()) {
                 let refreshed = maybe_refresh_access_token(
                     &client,
                     &config.upstream,
@@ -308,8 +313,9 @@ impl AppState {
                 )
                 .await
                 .map_err(|err| match err {
-                    RefreshError::InvalidCredential(message)
-                    | RefreshError::Transient(message) => anyhow!(message),
+                    RefreshError::InvalidCredential(message) | RefreshError::Transient(message) => {
+                        anyhow!(message)
+                    }
                 })?;
                 if let Some(refreshed) = refreshed {
                     access_token = Some(refreshed.access_token);
@@ -323,7 +329,6 @@ impl AppState {
                     }
                 }
             }
-        }
 
         let access_token = access_token.ok_or_else(|| anyhow!("missing access_token"))?;
         if user_email.is_none()
@@ -331,8 +336,9 @@ impl AppState {
             || subscription_type.is_none()
             || rate_limit_tier.is_none()
         {
-            let profile = fetch_oauth_profile(&client, config.upstream.base_url.as_str(), &access_token)
-                .await?;
+            let profile =
+                fetch_oauth_profile(&client, config.upstream.base_url.as_str(), &access_token)
+                    .await?;
             if user_email.is_none() {
                 user_email = profile.email;
             }
@@ -349,9 +355,7 @@ impl AppState {
 
         Ok(CredentialUpsertInput {
             id: input.id.or_else(|| existing.map(|item| item.id.clone())),
-            enabled: input
-                .enabled
-                .or_else(|| existing.map(|item| item.enabled)),
+            enabled: input.enabled.or_else(|| existing.map(|item| item.enabled)),
             order: input.order.or_else(|| existing.map(|item| item.order)),
             access_token: Some(access_token),
             refresh_token,
@@ -476,8 +480,7 @@ impl AppState {
                     }
                     Err(UsageRefreshFailure::Transient(message)) => {
                         item.status = CredentialStatus::Cooldown5h;
-                        item.cooldown_until_unix_ms =
-                            Some(now.saturating_add(FIVE_HOUR_WINDOW_MS));
+                        item.cooldown_until_unix_ms = Some(now.saturating_add(FIVE_HOUR_WINDOW_MS));
                         item.last_error = Some(format!(
                             "upstream returned status 429; usage fetch failed: {message}"
                         ));
@@ -514,7 +517,8 @@ impl AppState {
     ) -> Result<(String, OAuthState)> {
         let now = now_unix_ms();
         let mut states = self.oauth_states.write().await;
-        states.retain(|_, value| now.saturating_sub(value.created_at_unix_ms) <= OAUTH_STATE_TTL_MS);
+        states
+            .retain(|_, value| now.saturating_sub(value.created_at_unix_ms) <= OAUTH_STATE_TTL_MS);
 
         if let Some(state_id) = requested_state {
             let state = states
@@ -534,7 +538,9 @@ impl AppState {
             .next()
             .cloned()
             .ok_or_else(|| anyhow!("missing state"))?;
-        let state = states.remove(&key).ok_or_else(|| anyhow!("missing state"))?;
+        let state = states
+            .remove(&key)
+            .ok_or_else(|| anyhow!("missing state"))?;
         Ok((key, state))
     }
 
@@ -554,7 +560,11 @@ impl AppState {
         Ok(())
     }
 
-    async fn fetch_live_usage(&self, credential_id: &str, access_token: &str) -> CredentialUsageSnapshot {
+    async fn fetch_live_usage(
+        &self,
+        credential_id: &str,
+        access_token: &str,
+    ) -> CredentialUsageSnapshot {
         let client = self.client().await;
         let credential = CredentialConfig {
             id: credential_id.to_string(),
@@ -614,7 +624,7 @@ fn normalize_runtime_credentials(credentials: &mut [CredentialConfig], now: u64)
     }
 }
 
-fn first_usable<'a>(credentials: &'a [CredentialConfig], now: u64) -> Option<&'a CredentialConfig> {
+fn first_usable(credentials: &[CredentialConfig], now: u64) -> Option<&CredentialConfig> {
     credentials.iter().find(|item| is_usable(item, now))
 }
 
@@ -746,10 +756,13 @@ fn merge_status_for_view(
         );
     }
 
-    let (usage_status, usage_cooldown_until_unix_ms) = derive_status_from_usage(usage, now_unix_ms());
+    let (usage_status, usage_cooldown_until_unix_ms) =
+        derive_status_from_usage(usage, now_unix_ms());
     let status = if matches!(
         usage_status,
-        CredentialStatus::Cooldown5h | CredentialStatus::Cooldown7d | CredentialStatus::CooldownSonnet7d
+        CredentialStatus::Cooldown5h
+            | CredentialStatus::Cooldown7d
+            | CredentialStatus::CooldownSonnet7d
     ) {
         usage_status
     } else {
@@ -791,9 +804,8 @@ fn derive_rate_limited_status_from_payload(
         if utilization < 100.0 {
             continue;
         }
-        let reset = parse_rfc3339_to_unix_ms(
-            section.get("resets_at").and_then(|value| value.as_str()),
-        );
+        let reset =
+            parse_rfc3339_to_unix_ms(section.get("resets_at").and_then(|value| value.as_str()));
         if reset.is_some_and(|value| value > now_unix_ms) {
             return Some((status, reset));
         }
@@ -842,8 +854,12 @@ fn build_http_client(upstream: &UpstreamConfig) -> Result<reqwest::Client> {
 
 #[cfg(test)]
 mod tests {
-    use super::{build_http_client, derive_rate_limited_status_from_payload, derive_status_from_usage};
-    use crate::config::{CredentialStatus, CredentialUsageBucket, CredentialUsageSnapshot, UpstreamConfig};
+    use super::{
+        build_http_client, derive_rate_limited_status_from_payload, derive_status_from_usage,
+    };
+    use crate::config::{
+        CredentialStatus, CredentialUsageBucket, CredentialUsageSnapshot, UpstreamConfig,
+    };
     use serde_json::json;
 
     #[test]

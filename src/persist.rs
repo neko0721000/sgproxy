@@ -161,7 +161,9 @@ mod tests {
     use tempfile::TempDir;
 
     use super::save_config;
-    use crate::config::{ConfigFile, CredentialConfig, CredentialStatus, ServerConfig, UpstreamConfig};
+    use crate::config::{
+        ConfigFile, CredentialConfig, CredentialStatus, ServerConfig, UpstreamConfig,
+    };
 
     #[tokio::test]
     async fn save_config_does_not_persist_usage() {

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -561,7 +561,7 @@
       const storedLang = localStorage.getItem("sgproxy_lang");
       let currentLang = storedLang === "zh" || storedLang === "en"
         ? storedLang
-        : ((navigator.language || "").toLowerCase().startsWith("zh") ? "zh" : "en");
+        : "zh";
       let lastCredentials = [];
       let bannerState = { message: "", isError: false, translate: false };
 

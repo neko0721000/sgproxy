@@ -65,7 +65,10 @@ pub fn app_router(state: Arc<AppState>) -> Router {
             get(admin::list_credentials).post(admin::create_credential),
         )
         .route("/api/credentials/usage", get(admin::list_credential_usage))
-        .route("/api/credentials/usage/{id}", get(admin::get_credential_usage))
+        .route(
+            "/api/credentials/usage/{id}",
+            get(admin::get_credential_usage),
+        )
         .route("/api/credentials/{id}", put(admin::update_credential))
         .route(
             "/api/credentials/{id}/enable",
@@ -329,7 +332,10 @@ mod tests {
         assert_eq!(credentials.len(), 1);
         assert_eq!(credentials[0].access_token, "import-access");
         assert_eq!(credentials[0].refresh_token, "import-refresh");
-        assert_eq!(credentials[0].user_email.as_deref(), Some("import@example.com"));
+        assert_eq!(
+            credentials[0].user_email.as_deref(),
+            Some("import@example.com")
+        );
         assert_eq!(
             credentials[0].subscription_type.as_deref(),
             Some("claude_max")
