@@ -1,6 +1,6 @@
 # SGProxy
 
-多通道 API 凭证代理服务，基于 Cloudflare Workers + Durable Objects 构建，支持 ClaudeCode 和 Codex 双通道的凭证管理、自动轮换、OAuth 授权及用量追踪。
+基于 Cloudflare Workers + Durable Objects 的 ClaudeCode 凭证代理，提供 OAuth 导入、凭证轮换、用量查看和 header-only `/v1/*` 转发。
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/LeenHawk/sgproxy)
 
@@ -8,19 +8,19 @@
 
 ## 功能特性
 
-- **双通道支持** — ClaudeCode (Anthropic) 和 Codex (OpenAI) 双通道代理
-- **智能凭证选择** — 根据速率限制和可用性自动选择最优凭证
-- **OAuth 授权** — 支持完整 OAuth2 + PKCE 流程导入凭证
-- **自动刷新** — Token 过期前自动刷新，刷新失败自动标记为 Dead
-- **用量追踪** — 跟踪 5 小时 / 7 天窗口内的请求与 Token 用量
-- **速率限制处理** — 收到 429 时自动切换到下一个可用凭证
-- **管理后台** — 带深色模式和中英双语支持的 Web UI
+- **单通道 ClaudeCode** — 只代理 Anthropic ClaudeCode 请求
+- **Header-only 转发** — 仅处理请求头，request/response body 原样透传
+- **OAuth 导入** — 支持 OAuth2 + PKCE 导入凭证
+- **自动刷新** — Token 过期前自动刷新，失败标记为 `dead`
+- **用量追踪** — 跟踪 5 小时 / 7 天 / 7 天 Sonnet 限额
+- **429 自动切换** — 当前请求不重放，只切换后续请求使用的凭证
+- **管理后台** — 内嵌 Web UI，支持中英双语
 - **公开用量页** — 无需登录即可查看凭证状态
 
 ## 技术栈
 
 - **运行时**: Cloudflare Workers + Durable Objects (SQLite)
-- **语言**: Rust → WebAssembly
+- **语言**: Rust -> WebAssembly
 - **构建**: worker-build + Cargo
 
 ## 快速开始
@@ -34,61 +34,53 @@
 ### 本地开发
 
 ```bash
-# 1. 克隆项目
 git clone <repo-url> && cd sgproxy
-
-# 2. 设置环境变量
 echo 'ADMIN_TOKEN=your-secret-token' > .env
-
-# 3. 启动开发服务器
 wrangler dev
 ```
 
-访问 `http://localhost:8787/` 进入管理后台。
+访问 `http://localhost:8787/` 打开管理页。
 
-### 部署到 Cloudflare
+### 部署
 
 ```bash
 wrangler deploy
 ```
 
-部署后需要在 Cloudflare Dashboard 中设置 `ADMIN_TOKEN` Secret。
+部署后在 Cloudflare Dashboard 设置 `ADMIN_TOKEN` secret。
 
 ## 使用方式
 
 ### 添加凭证
 
-有三种方式：
-
-1. **OAuth 导入** — 在管理后台点击 "OAuth 导入"，完成授权流程
-2. **JSON 导入** — 在管理后台粘贴凭证 JSON：
+1. **OAuth 导入** — 在后台点击 `OAuth` 页签后完成授权
+2. **JSON 导入** — 在后台粘贴：
    ```json
    {
      "access_token": "sk-...",
      "refresh_token": "sk-..."
    }
    ```
-3. **API 导入** — 调用管理 API：
+3. **API 导入**
    ```bash
-   curl -X POST https://your-worker.dev/api/claudecode/credentials \
+   curl -X POST https://your-worker.dev/api/credentials \
      -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
      -H "Content-Type: application/json" \
-     -d '{"access_token":"sk-...", "refresh_token":"sk-..."}'
+     -d '{"access_token":"sk-...","refresh_token":"sk-..."}'
    ```
 
 ### 代理请求
 
-将客户端的 API 基地址指向你的 Worker：
+把客户端基地址指向：
 
-- **ClaudeCode**: `https://your-worker.dev/v1/...`
-- **Codex**: `https://your-worker.dev/codex/...`
+- `https://your-worker.dev/v1/...`
 
-代理会自动注入凭证、处理速率限制和 Token 刷新。
+代理会自动覆盖上游 `authorization`，补齐 `anthropic-version` 和必需的 `anthropic-beta`。
 
-### 监控
+### 页面
 
-- `/usage` — 公开的凭证状态与用量页面
-- `/` — 管理后台（需要 ADMIN_TOKEN 登录）
+- `/` 管理后台
+- `/usage` 公开用量页
 
 ## API 端点
 
@@ -96,35 +88,36 @@ wrangler deploy
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| POST | `/v1/*` | 代理 ClaudeCode 请求 |
-| POST | `/codex/*` | 代理 Codex 请求 |
+| ANY | `/v1/*` | 代理 ClaudeCode 请求 |
 
-### 管理端点（需 Bearer Token 认证）
+### 管理端点
 
-以 `/api/{channel}/` 为前缀，`{channel}` 为 `claudecode` 或 `codex`：
+支持 `Authorization: Bearer <ADMIN_TOKEN>` 或 `x-api-key: <ADMIN_TOKEN>`。
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| GET | `/credentials` | 列出所有凭证 |
-| POST | `/credentials` | 导入凭证 |
-| DELETE | `/credentials/{id}` | 删除凭证 |
-| POST | `/credentials/{id}/enable` | 启用凭证 |
-| POST | `/credentials/{id}/disable` | 停用凭证 |
-| GET | `/credentials/usage` | 查看所有凭证用量 |
-| POST | `/oauth/start` | 发起 OAuth 授权 |
-| POST | `/oauth/callback` | 完成 OAuth 回调 |
+| GET | `/api/public/credentials` | 公开凭证用量 |
+| GET | `/api/credentials` | 列出凭证 |
+| POST | `/api/credentials` | 导入凭证 |
+| PUT | `/api/credentials/{id}` | 更新凭证 |
+| DELETE | `/api/credentials/{id}` | 删除凭证 |
+| POST | `/api/credentials/{id}/enable` | 启用凭证 |
+| POST | `/api/credentials/{id}/disable` | 停用凭证 |
+| GET | `/api/credentials/usage` | 查看全部用量 |
+| GET | `/api/credentials/usage/{id}` | 查看单个用量 |
+| POST | `/api/oauth/start` | 发起 OAuth |
+| POST | `/api/oauth/callback` | 完成 OAuth |
 
 ## 项目结构
 
-```
+```text
 src/
-├── lib.rs          # 入口，路由分发到 Durable Object
-├── do_state.rs     # Durable Object 实现，管理 API 路由
-├── config.rs       # 数据模型、常量
-├── proxy.rs        # HTTP 请求代理逻辑
-├── oauth.rs        # OAuth 流程、Token 刷新、用量拉取
-├── state.rs        # 存储操作、凭证选择算法
-├── tokenizer.rs    # Codex Token 计数
+├── lib.rs
+├── do_state.rs
+├── config.rs
+├── proxy.rs
+├── oauth.rs
+├── state.rs
 └── web/
-    └── index.html  # 单页管理后台
+    └── index.html
 ```

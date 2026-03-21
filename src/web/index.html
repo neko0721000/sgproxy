@@ -7,11 +7,8 @@
     <style>
       :root {
         --bg: #f6f3ec;
-        --bg-grad-1: rgba(15, 118, 110, 0.12);
-        --bg-grad-2: rgba(180, 83, 9, 0.12);
         --panel: rgba(255, 255, 255, 0.85);
         --panel-solid: #ffffff;
-        --card-bg: rgba(255, 255, 255, 0.6);
         --ink: #171717;
         --muted: #626262;
         --line: rgba(0, 0, 0, 0.1);
@@ -19,62 +16,25 @@
         --accent-soft: rgba(15, 118, 110, 0.12);
         --danger: #b91c1c;
         --warn: #b45309;
-        --pill-bg: rgba(0, 0, 0, 0.06);
-        --tab-bg: rgba(255, 255, 255, 0.65);
-        --tab-active-bg: #ffffff;
-        --tab-active-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
-        --btn-secondary: rgba(0, 0, 0, 0.06);
-        --detail-bg: rgba(255, 255, 255, 0.45);
-        --bar-bg: rgba(0, 0, 0, 0.08);
         --shadow: 0 16px 48px rgba(0, 0, 0, 0.08);
         --radius: 18px;
         --radius-sm: 12px;
-        --transition: 0.2s ease;
-        color-scheme: light;
-      }
-
-      html.dark {
-        --bg: #0f0f0f;
-        --bg-grad-1: rgba(15, 118, 110, 0.15);
-        --bg-grad-2: rgba(180, 83, 9, 0.1);
-        --panel: rgba(28, 28, 30, 0.9);
-        --panel-solid: #1c1c1e;
-        --card-bg: rgba(44, 44, 46, 0.6);
-        --ink: #e5e5e5;
-        --muted: #9a9a9a;
-        --line: rgba(255, 255, 255, 0.1);
-        --accent: #2dd4bf;
-        --accent-soft: rgba(45, 212, 191, 0.12);
-        --danger: #f87171;
-        --warn: #fbbf24;
-        --pill-bg: rgba(255, 255, 255, 0.08);
-        --tab-bg: rgba(255, 255, 255, 0.06);
-        --tab-active-bg: rgba(255, 255, 255, 0.14);
-        --tab-active-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
-        --btn-secondary: rgba(255, 255, 255, 0.1);
-        --detail-bg: rgba(255, 255, 255, 0.05);
-        --bar-bg: rgba(255, 255, 255, 0.1);
-        --shadow: 0 16px 48px rgba(0, 0, 0, 0.3);
-        color-scheme: dark;
       }
 
       * { box-sizing: border-box; }
       html, body { min-height: 100%; margin: 0; }
-
       body {
-        font-family: -apple-system, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
-        font-size: 14px;
-        line-height: 1.5;
+        font-family: "SF Pro Text", "Segoe UI", system-ui, sans-serif;
         color: var(--ink);
         background:
-          radial-gradient(circle at top left, var(--bg-grad-1), transparent 28%),
-          radial-gradient(circle at bottom right, var(--bg-grad-2), transparent 30%),
+          radial-gradient(circle at top left, rgba(15, 118, 110, 0.12), transparent 28%),
+          radial-gradient(circle at bottom right, rgba(180, 83, 9, 0.12), transparent 30%),
           var(--bg);
-        transition: background var(--transition), color var(--transition);
       }
 
       .page {
         min-height: 100vh;
+        width: 100%;
         padding: 28px 18px 56px;
       }
 
@@ -83,219 +43,128 @@
         margin: 0 auto;
       }
 
-      /* ── Hero ── */
       .hero {
         display: flex;
         justify-content: space-between;
         align-items: flex-start;
         gap: 16px;
-        margin-bottom: 24px;
+        margin-bottom: 20px;
       }
 
       h1 {
         margin: 0;
-        font-size: 28px;
-        font-weight: 700;
-        letter-spacing: -0.03em;
+        font-size: 32px;
+        letter-spacing: -0.04em;
       }
 
       .subtitle {
-        margin-top: 6px;
+        margin-top: 8px;
         color: var(--muted);
-        font-size: 12px;
-      }
-
-      .hero-right {
-        display: flex;
-        gap: 8px;
-        align-items: center;
-        flex-shrink: 0;
-      }
-
-      /* ── Switcher pills (lang, theme) ── */
-      .switcher {
-        display: inline-flex;
-        gap: 2px;
-        padding: 3px;
-        border-radius: 10px;
-        background: var(--tab-bg);
-      }
-
-      .switcher button {
-        padding: 5px 10px;
-        font-size: 12px;
-        font-weight: 500;
-        border: 0;
-        border-radius: 8px;
-        background: transparent;
-        color: var(--muted);
-        cursor: pointer;
-        transition: all var(--transition);
-        font: inherit;
-        font-size: 12px;
-        line-height: 1.4;
-      }
-
-      .switcher button.active {
-        background: var(--tab-active-bg);
-        color: var(--ink);
-        box-shadow: var(--tab-active-shadow);
-      }
-
-      .theme-btn {
-        width: 34px;
-        height: 34px;
-        padding: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border: 0;
-        border-radius: 10px;
-        background: var(--tab-bg);
-        color: var(--muted);
-        cursor: pointer;
-        font-size: 16px;
-        transition: all var(--transition);
-      }
-
-      .theme-btn:hover { background: var(--btn-secondary); }
-
-      /* ── Card ── */
-      .card {
-        background: var(--panel);
-        backdrop-filter: blur(18px);
-        -webkit-backdrop-filter: blur(18px);
-        border: 1px solid var(--line);
-        border-radius: var(--radius);
-        box-shadow: var(--shadow);
-        padding: 22px;
-        transition: background var(--transition), border-color var(--transition), box-shadow var(--transition);
-      }
-
-      .stack { display: grid; gap: 16px; }
-      .hidden { display: none !important; }
-
-      /* ── Tabs (segment control) ── */
-      .tabs {
-        display: inline-flex;
-        gap: 2px;
-        padding: 3px;
-        border-radius: 14px;
-        background: var(--tab-bg);
-      }
-
-      .tab {
-        border: 0;
-        border-radius: var(--radius-sm);
-        cursor: pointer;
-        font: inherit;
-        background: transparent;
-        color: var(--muted);
-        padding: 9px 18px;
-        font-size: 13px;
-        font-weight: 500;
-        transition: all var(--transition);
-      }
-
-      .tab:hover { color: var(--ink); }
-
-      .tab.active {
-        background: var(--tab-active-bg);
-        color: var(--ink);
-        box-shadow: var(--tab-active-shadow);
-      }
-
-      /* ── Nav bar: channel tabs + sub tabs stacked ── */
-      .nav-bar {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        margin-bottom: 18px;
-      }
-
-      .nav-row {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        flex-wrap: wrap;
-      }
-
-      .nav-row .toolbar-actions {
-        margin-left: auto;
-        display: flex;
-        gap: 8px;
-      }
-
-      /* ── Input / Textarea ── */
-      input, textarea {
-        width: 100%;
-        border: 1px solid var(--line);
-        border-radius: var(--radius-sm);
-        padding: 10px 14px;
-        background: var(--panel-solid);
-        color: var(--ink);
-        font: inherit;
-        font-size: 14px;
-        outline: none;
-        transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
-      }
-
-      input:focus, textarea:focus {
-        border-color: var(--accent);
-        box-shadow: 0 0 0 3px var(--accent-soft);
-      }
-
-      input::placeholder, textarea::placeholder { color: var(--muted); opacity: 0.6; }
-
-      textarea {
-        min-height: 100px;
-        resize: vertical;
-        font-family: "SF Mono", "Cascadia Code", "Fira Code", monospace;
         font-size: 13px;
       }
 
-      /* ── Buttons ── */
+      .lang {
+        display: flex;
+        gap: 6px;
+      }
+
+      .lang button,
+      .tab,
       button {
         border: 0;
         border-radius: var(--radius-sm);
         cursor: pointer;
         font: inherit;
-        padding: 9px 16px;
-        font-size: 13px;
-        font-weight: 500;
-        background: var(--accent);
-        color: white;
-        transition: all var(--transition);
       }
 
-      button:hover { opacity: 0.88; }
-      button:active { transform: scale(0.97); }
+      .lang button {
+        padding: 8px 12px;
+        background: rgba(255, 255, 255, 0.55);
+      }
+
+      .lang button.active {
+        background: var(--ink);
+        color: white;
+      }
+
+      .card {
+        background: var(--panel);
+        backdrop-filter: blur(18px);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        padding: 22px;
+      }
+
+      .stack { display: grid; gap: 16px; }
+      .hidden { display: none !important; }
+
+      .tabs {
+        display: inline-flex;
+        gap: 4px;
+        padding: 4px;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.65);
+        margin-bottom: 18px;
+      }
+
+      .tab {
+        background: transparent;
+        color: var(--muted);
+        padding: 9px 16px;
+      }
+
+      .tab.active {
+        background: var(--panel-solid);
+        color: var(--ink);
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+      }
+
+      input, textarea {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 12px 14px;
+        background: var(--panel-solid);
+        font: inherit;
+      }
+
+      textarea {
+        min-height: 120px;
+        resize: vertical;
+        font-family: "SF Mono", "Cascadia Code", monospace;
+        font-size: 13px;
+      }
+
+      button {
+        padding: 10px 14px;
+        background: var(--accent);
+        color: white;
+      }
 
       button.secondary {
-        background: var(--btn-secondary);
+        background: rgba(0, 0, 0, 0.06);
         color: var(--ink);
       }
 
-      button.secondary:hover { opacity: 1; background: var(--line); }
+      button.danger {
+        background: var(--danger);
+      }
 
-      button.danger { background: var(--danger); color: white; }
-
-      .toolbar, .row {
+      .toolbar,
+      .row {
         display: flex;
-        gap: 8px;
+        gap: 10px;
         flex-wrap: wrap;
         align-items: center;
       }
 
-      /* ── Status banner ── */
       .status {
-        padding: 10px 14px;
-        border-radius: var(--radius-sm);
+        padding: 12px 14px;
+        border-radius: 12px;
         background: var(--accent-soft);
         color: var(--accent);
-        font-size: 13px;
         white-space: pre-wrap;
-        transition: background var(--transition), color var(--transition);
       }
 
       .status.error {
@@ -303,88 +172,80 @@
         color: var(--danger);
       }
 
-      .grid { display: grid; gap: 12px; }
+      .grid {
+        display: grid;
+        gap: 14px;
+      }
 
-      /* ── Credential card ── */
       .credential {
         border: 1px solid var(--line);
-        border-radius: 14px;
-        background: var(--card-bg);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.6);
         padding: 16px;
         display: grid;
-        gap: 12px;
-        transition: background var(--transition), border-color var(--transition);
+        gap: 14px;
       }
 
       .credential-head {
         display: flex;
         justify-content: space-between;
         gap: 10px;
-        align-items: flex-start;
+        align-items: center;
         flex-wrap: wrap;
       }
 
       .credential-title {
-        font-size: 15px;
-        font-weight: 600;
-        word-break: break-all;
+        font-size: 16px;
+        font-weight: 700;
       }
 
       .meta {
         display: flex;
-        gap: 6px;
+        gap: 8px;
         flex-wrap: wrap;
-        margin-top: 6px;
       }
 
       .pill {
         border-radius: 999px;
-        padding: 3px 10px;
-        font-size: 11px;
-        font-weight: 500;
-        background: var(--pill-bg);
+        padding: 4px 10px;
+        font-size: 12px;
+        background: rgba(0, 0, 0, 0.06);
         color: var(--muted);
-        white-space: nowrap;
       }
 
-      .pill.healthy { background: var(--accent-soft); color: var(--accent); }
+      .pill.healthy { background: rgba(15, 118, 110, 0.12); color: var(--accent); }
       .pill.warn { background: rgba(180, 83, 9, 0.12); color: var(--warn); }
       .pill.dead { background: rgba(185, 28, 28, 0.12); color: var(--danger); }
 
-      /* ── Details ── */
       details {
         border: 1px solid var(--line);
-        border-radius: var(--radius-sm);
-        background: var(--detail-bg);
-        padding: 10px 14px;
-        transition: background var(--transition), border-color var(--transition);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.45);
+        padding: 10px 12px;
       }
 
       summary {
         cursor: pointer;
         color: var(--muted);
-        font-size: 13px;
-        user-select: none;
-        list-style: none;
       }
 
-      summary::-webkit-details-marker { display: none; }
-      summary::before { content: "\25B8\00a0"; font-size: 10px; display: inline-block; transition: transform var(--transition); }
-      details[open] summary::before { transform: rotate(90deg); }
-
       pre {
-        margin: 10px 0 0;
+        margin: 12px 0 0;
         white-space: pre-wrap;
         word-break: break-word;
         font-family: "SF Mono", "Cascadia Code", monospace;
         font-size: 12px;
-        line-height: 1.6;
       }
 
-      /* ── Usage bars ── */
-      .usage-list { display: grid; gap: 10px; }
+      .usage-list {
+        display: grid;
+        gap: 10px;
+      }
 
-      .usage-item { display: grid; gap: 4px; }
+      .usage-item {
+        display: grid;
+        gap: 6px;
+      }
 
       .usage-label {
         display: flex;
@@ -392,60 +253,30 @@
         gap: 12px;
         color: var(--muted);
         font-size: 12px;
-        font-weight: 500;
       }
 
       .bar {
-        height: 8px;
+        height: 10px;
         border-radius: 999px;
         overflow: hidden;
-        background: var(--bar-bg);
+        background: rgba(0, 0, 0, 0.08);
       }
 
       .fill {
         height: 100%;
         border-radius: inherit;
         background: linear-gradient(90deg, #0f766e, #14b8a6);
-        transition: width 0.4s ease;
       }
 
       .usage-note {
-        font-size: 11px;
+        font-size: 12px;
         color: var(--muted);
       }
 
-      /* ── Section title ── */
-      .section-title {
-        font-size: 15px;
-        font-weight: 600;
-        margin: 0;
-      }
-
-      /* ── Login center ── */
-      .login-wrap {
-        max-width: 420px;
-        margin: 48px auto 0;
-      }
-
-      /* ── Responsive ── */
       @media (max-width: 720px) {
-        .page { padding: 16px 12px 32px; }
+        .page { padding: 18px 12px 32px; }
         .hero { flex-direction: column; }
-        .hero-right { width: 100%; justify-content: flex-start; }
-        .nav-row .toolbar-actions { margin-left: 0; width: 100%; }
-        .credential-head { flex-direction: column; align-items: stretch; }
-        .credential-head .row { justify-content: flex-start; }
-        .tabs { width: 100%; }
-        .tab { flex: 1; text-align: center; padding: 9px 10px; font-size: 12px; }
       }
-
-      /* ── Animation ── */
-      @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(6px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
-
-      .card { animation: fadeIn 0.25s ease-out; }
     </style>
   </head>
   <body>
@@ -453,85 +284,61 @@
       <div class="shell">
         <div class="hero">
           <div>
-            <h1>SGPROXY</h1>
+            <h1>sgproxy</h1>
             <div class="subtitle">LeenHawk &lt;leenhawk@leenhawk.com&gt;</div>
           </div>
-          <div class="hero-right">
-            <div class="switcher">
-              <button id="langZh" class="active">中文</button>
-              <button id="langEn">EN</button>
-            </div>
-            <button class="theme-btn" id="themeToggle" title="Toggle theme">
-              <span id="themeIcon">&#9790;</span>
-            </button>
+          <div class="lang">
+            <button id="langZh" class="active">中文</button>
+            <button id="langEn">EN</button>
           </div>
         </div>
 
-        <!-- Usage (public) page -->
         <div id="usagePage" class="card stack hidden">
           <div id="publicStatus" class="status">Loading...</div>
           <div id="publicList" class="grid"></div>
         </div>
 
-        <!-- Login page -->
-        <div id="loginPage" class="login-wrap hidden">
-          <div class="card stack">
-            <div class="section-title" id="loginTitle"></div>
-            <input id="tokenInput" placeholder="Bearer token" />
-            <div class="row">
-              <button id="loginBtn"></button>
-              <button id="clearBtn" class="secondary"></button>
-            </div>
-            <div id="loginStatus" class="status"></div>
+        <div id="loginPage" class="card stack hidden">
+          <div id="loginTitle" style="font-size:20px;font-weight:700;">登录</div>
+          <input id="tokenInput" placeholder="Bearer token" />
+          <div class="row">
+            <button id="loginBtn">登录</button>
+            <button id="clearBtn" class="secondary">清空</button>
           </div>
+          <div id="loginStatus" class="status">输入 ADMIN_TOKEN。</div>
         </div>
 
-        <!-- Admin page -->
         <div id="adminPage" class="hidden">
-          <div class="nav-bar">
-            <!-- Row 1: channel tabs + actions -->
-            <div class="nav-row">
-              <div class="tabs">
-                <button class="tab active" id="channelClaudeTab">ClaudeCode</button>
-                <button class="tab" id="channelCodexTab">Codex</button>
-              </div>
-              <div class="toolbar-actions">
-                <button id="refreshBtn" class="secondary"></button>
-                <button id="logoutBtn" class="secondary"></button>
-              </div>
-            </div>
-            <!-- Row 2: sub tabs -->
-            <div class="nav-row">
-              <div class="tabs">
-                <button class="tab active" id="credentialsTab"></button>
-                <button class="tab" id="oauthTab">OAuth</button>
-              </div>
-            </div>
+          <div class="tabs">
+            <button class="tab" data-tab="oauth" id="oauthTab">OAuth</button>
+            <button class="tab active" data-tab="credentials" id="credentialsTab">凭证</button>
           </div>
 
-          <div id="globalStatus" class="status hidden" style="margin-bottom:14px"></div>
+          <div id="globalStatus" class="status hidden"></div>
 
-          <!-- Credentials panel -->
           <div id="credentialsPanel" class="card stack">
+            <div class="toolbar">
+              <button id="refreshBtn" class="secondary">刷新</button>
+              <button id="logoutBtn" class="secondary">退出</button>
+            </div>
             <div class="stack">
-              <div class="section-title" id="importTitle"></div>
-              <textarea id="importInput" placeholder='{"access_token":"..."}'></textarea>
+              <div style="font-size:16px;font-weight:700;" id="importTitle">导入凭证 JSON</div>
+              <textarea id="importInput" placeholder="{&quot;access_token&quot;:&quot;...&quot;}"></textarea>
               <div class="row">
-                <button id="importBtn"></button>
+                <button id="importBtn">导入</button>
               </div>
             </div>
             <div id="credentialList" class="grid"></div>
           </div>
 
-          <!-- OAuth panel -->
           <div id="oauthPanel" class="card stack hidden">
-            <div class="section-title" id="oauthTitle"></div>
+            <div style="font-size:16px;font-weight:700;" id="oauthTitle">OAuth 导入</div>
             <div class="row">
-              <button id="oauthStartBtn"></button>
+              <button id="oauthStartBtn">打开授权页</button>
             </div>
-            <textarea id="oauthCallbackInput"></textarea>
+            <textarea id="oauthCallbackInput" placeholder="粘贴 callback URL 或 code"></textarea>
             <div class="row">
-              <button id="oauthCallbackBtn"></button>
+              <button id="oauthCallbackBtn">完成导入</button>
             </div>
           </div>
         </div>
@@ -542,32 +349,8 @@
       const MODE = "__SGPROXY_VIEW_MODE__";
       const TOKEN_KEY = "sgproxy_admin_token";
       const LANG_KEY = "sgproxy_lang";
-      const CHANNEL_KEY = "sgproxy_channel";
-      const THEME_KEY = "sgproxy_theme";
       let lang = localStorage.getItem(LANG_KEY) || "zh";
-      let currentChannel = localStorage.getItem(CHANNEL_KEY) || "claudecode";
 
-      /* ── Theme ── */
-      function getPreferredTheme() {
-        const stored = localStorage.getItem(THEME_KEY);
-        if (stored === "dark" || stored === "light") return stored;
-        return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-      }
-
-      function applyTheme(theme) {
-        document.documentElement.classList.toggle("dark", theme === "dark");
-        document.getElementById("themeIcon").textContent = theme === "dark" ? "\u2600" : "\u263E";
-        localStorage.setItem(THEME_KEY, theme);
-      }
-
-      applyTheme(getPreferredTheme());
-
-      document.getElementById("themeToggle").addEventListener("click", () => {
-        const next = document.documentElement.classList.contains("dark") ? "light" : "dark";
-        applyTheme(next);
-      });
-
-      /* ── I18N ── */
       const I18N = {
         zh: {
           login: "登录",
@@ -582,7 +365,6 @@
           oauthTitle: "OAuth 导入",
           oauthOpen: "打开授权页",
           oauthFinish: "完成导入",
-          oauthPlaceholder: "粘贴 callback URL 或 code",
           enabled: "已启用",
           disabled: "已停用",
           copy: "复制",
@@ -599,22 +381,11 @@
           noCredentials: "暂无凭证",
           lastError: "错误",
           orderPrefix: "顺序",
-          claudecodeImportTitle: "导入 ClaudeCode 凭证 JSON",
-          codexImportTitle: "导入 Codex 凭证 JSON",
-          claudecodeOauthTitle: "ClaudeCode OAuth 导入",
-          codexOauthTitle: "Codex OAuth 导入",
           statusHealthy: "健康",
           statusCooldown5h: "五小时冷却",
           statusCooldown7d: "七天冷却",
           statusCooldownSonnet7d: "七天 Sonnet 冷却",
-          statusCodexReviewLimit: "Code Review 限制",
-          statusCodexPrimaryLimit: "一级限制",
-          statusCodexSecondaryLimit: "二级限制",
-          statusDead: "死亡",
-          codexPlan: "套餐",
-          codexCredits: "额度",
-          codexPrimary: "一级限额",
-          codexSecondary: "二级限额"
+          statusDead: "死亡"
         },
         en: {
           login: "Login",
@@ -629,7 +400,6 @@
           oauthTitle: "OAuth Import",
           oauthOpen: "Open Auth Page",
           oauthFinish: "Complete Import",
-          oauthPlaceholder: "Paste callback URL or code",
           enabled: "Enabled",
           disabled: "Disabled",
           copy: "Copy",
@@ -646,26 +416,14 @@
           noCredentials: "No credentials",
           lastError: "Error",
           orderPrefix: "Order",
-          claudecodeImportTitle: "Import ClaudeCode Credential JSON",
-          codexImportTitle: "Import Codex Credential JSON",
-          claudecodeOauthTitle: "ClaudeCode OAuth Import",
-          codexOauthTitle: "Codex OAuth Import",
           statusHealthy: "Healthy",
           statusCooldown5h: "5h Cooldown",
           statusCooldown7d: "7d Cooldown",
           statusCooldownSonnet7d: "7d Sonnet Cooldown",
-          statusCodexReviewLimit: "Code Review Limited",
-          statusCodexPrimaryLimit: "Primary Limited",
-          statusCodexSecondaryLimit: "Secondary Limited",
-          statusDead: "Dead",
-          codexPlan: "Plan",
-          codexCredits: "Credits",
-          codexPrimary: "Primary Limit",
-          codexSecondary: "Secondary Limit"
+          statusDead: "Dead"
         }
       };
 
-      /* ── DOM refs ── */
       const els = {
         loginPage: document.getElementById("loginPage"),
         adminPage: document.getElementById("adminPage"),
@@ -687,8 +445,6 @@
         oauthCallbackBtn: document.getElementById("oauthCallbackBtn"),
         credentialsTab: document.getElementById("credentialsTab"),
         oauthTab: document.getElementById("oauthTab"),
-        channelClaudeTab: document.getElementById("channelClaudeTab"),
-        channelCodexTab: document.getElementById("channelCodexTab"),
         credentialsPanel: document.getElementById("credentialsPanel"),
         oauthPanel: document.getElementById("oauthPanel"),
         globalStatus: document.getElementById("globalStatus"),
@@ -698,20 +454,8 @@
         langEn: document.getElementById("langEn")
       };
 
-      /* ── Helpers ── */
       function t(key) {
         return (I18N[lang] && I18N[lang][key]) || key;
-      }
-
-      function apiBase() {
-        return `/api/${currentChannel}`;
-      }
-
-      function escapeHtml(input) {
-        return String(input)
-          .replaceAll("&", "&amp;")
-          .replaceAll("<", "&lt;")
-          .replaceAll(">", "&gt;");
       }
 
       function setStatus(target, message, isError = false) {
@@ -746,7 +490,6 @@
         return data;
       }
 
-      /* ── Usage rendering ── */
       function usageRows(usage) {
         const buckets = [
           ["five_hour", "5h"],
@@ -770,34 +513,6 @@
         }).join("");
       }
 
-      function codexUsageRows(usage) {
-        const codex = usage && usage.codex ? usage.codex : {};
-        const buckets = [
-          ["primary", t("codexPrimary")],
-          ["secondary", t("codexSecondary")]
-        ];
-        const rows = buckets.map(([key, label]) => {
-          const item = codex[key] || {};
-          const pct = Number(item.used_percent || 0);
-          const mins = item.window_duration_mins ? `${item.window_duration_mins}m` : "-";
-          const reset = item.resets_at || "-";
-          return `
-            <div class="usage-item">
-              <div class="usage-label">
-                <span>${label}</span>
-                <span>${pct}%</span>
-              </div>
-              <div class="bar"><div class="fill" style="width:${Math.max(0, Math.min(100, pct))}%"></div></div>
-              <div class="usage-note">${escapeHtml(`${mins} · ${reset}`)}</div>
-            </div>
-          `;
-        }).join("");
-        const notes = [];
-        if (codex.plan_type) notes.push(`${t("codexPlan")}: ${codex.plan_type}`);
-        if (typeof codex.credits_balance === "number") notes.push(`${t("codexCredits")}: ${codex.credits_balance}`);
-        return `${rows}${notes.length ? `<div class="usage-note">${escapeHtml(notes.join(" · "))}</div>` : ""}`;
-      }
-
       function statusClass(status) {
         if (status === "healthy") return "healthy";
         if (status === "dead") return "dead";
@@ -810,76 +525,22 @@
           cooldown_5h: t("statusCooldown5h"),
           cooldown_7d: t("statusCooldown7d"),
           cooldown_sonnet_7d: t("statusCooldownSonnet7d"),
-          codex_review_limit: t("statusCodexReviewLimit"),
-          codex_primary_limit: t("statusCodexPrimaryLimit"),
-          codex_secondary_limit: t("statusCodexSecondaryLimit"),
           dead: t("statusDead")
         };
         return map[status] || status || "";
       }
 
-      function hasClaudecodeUsage(usage) {
-        return Boolean(
-          usage &&
-          (usage.five_hour?.utilization_pct != null ||
-            usage.seven_day?.utilization_pct != null ||
-            usage.seven_day_sonnet?.utilization_pct != null)
-        );
-      }
-
-      function hasCodexUsage(usage) {
-        return Boolean(
-          usage &&
-          usage.codex &&
-          (
-            usage.codex.primary?.used_percent != null ||
-            usage.codex.secondary?.used_percent != null ||
-            usage.codex.plan_type ||
-            typeof usage.codex.credits_balance === "number"
-          )
-        );
-      }
-
-      function credentialJson(item) {
-        return (item.channel || currentChannel) === "codex"
-          ? {
-              channel: item.channel || currentChannel,
-              access_token: item.access_token,
-              refresh_token: item.refresh_token,
-              expires_at_unix_ms: item.expires_at_unix_ms,
-              user_email: item.user_email,
-              account_id: item.account_id,
-              subscription_type: item.subscription_type,
-              status: item.status
-            }
-          : {
-              channel: item.channel || currentChannel,
-              access_token: item.access_token,
-              refresh_token: item.refresh_token,
-              expires_at_unix_ms: item.expires_at_unix_ms,
-              user_email: item.user_email,
-              organization_uuid: item.organization_uuid,
-              subscription_type: item.subscription_type,
-              rate_limit_tier: item.rate_limit_tier,
-              status: item.status
-            };
-      }
-
       function credentialCard(item) {
-        const itemChannel = item.channel || currentChannel;
         const enabled = item.enabled ? t("enabled") : t("disabled");
         const toggleAction = item.enabled ? "disable" : "enable";
         const toggleLabel = item.enabled ? t("disable") : t("enable");
-        const jsonText = JSON.stringify(item.json || credentialJson(item), null, 2);
-        const title = item.user_email || item.account_id || item.id;
-        const usageBlock = itemChannel === "codex"
-          ? (hasCodexUsage(item.usage) ? `<div class="usage-list">${codexUsageRows(item.usage)}</div>` : "")
-          : (hasClaudecodeUsage(item.usage) ? `<div class="usage-list">${usageRows(item.usage)}</div>` : "");
+        const jsonText = JSON.stringify(item.json || {}, null, 2);
+        const email = item.user_email || item.id;
         return `
           <div class="credential">
             <div class="credential-head">
               <div>
-                <div class="credential-title">${escapeHtml(title)}</div>
+                <div class="credential-title">${escapeHtml(email)}</div>
                 <div class="meta">
                   <span class="pill ${statusClass(item.status)}">${escapeHtml(statusLabel(item.status))}</span>
                   <span class="pill">${t("orderPrefix")}: ${item.order ?? "-"}</span>
@@ -893,7 +554,7 @@
               </div>
             </div>
             ${item.last_error ? `<div class="usage-note">${t("lastError")}: ${escapeHtml(item.last_error)}</div>` : ""}
-            ${usageBlock}
+            <div class="usage-list">${usageRows(item.usage || {})}</div>
             <details>
               <summary>${t("credentialJson")}</summary>
               <pre>${escapeHtml(jsonText)}</pre>
@@ -902,18 +563,32 @@
         `;
       }
 
-      /* ── Data loading ── */
+      function escapeHtml(input) {
+        return String(input)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;");
+      }
+
       async function loadCredentials() {
-        const credentials = await api(`${apiBase()}/credentials`);
-        let usageMap = new Map();
-        if (currentChannel === "claudecode" || currentChannel === "codex") {
-          const usage = await api(`${apiBase()}/credentials/usage`);
-          usageMap = new Map((usage || []).map((item) => [item.id, item]));
-        }
+        const [credentials, usage] = await Promise.all([
+          api("/api/credentials"),
+          api("/api/credentials/usage")
+        ]);
+        const usageMap = new Map((usage || []).map((item) => [item.id, item]));
         const merged = (credentials || []).map((item) => ({
           ...item,
           ...(usageMap.get(item.id) || {}),
-          json: credentialJson(item)
+          json: {
+            access_token: item.access_token,
+            refresh_token: item.refresh_token,
+            expires_at_unix_ms: item.expires_at_unix_ms,
+            user_email: item.user_email,
+            organization_uuid: item.organization_uuid,
+            subscription_type: item.subscription_type,
+            rate_limit_tier: item.rate_limit_tier,
+            status: item.status
+          }
         }));
         els.credentialList.innerHTML = merged.length
           ? merged.map(credentialCard).join("")
@@ -921,20 +596,17 @@
       }
 
       async function loadPublic() {
-        const items = await api("/api/claudecode/public/credentials", {
+        const items = await api("/api/public/credentials", {
           headers: { "content-type": "application/json" }
         });
-        els.publicList.innerHTML = (items || []).map((item) =>
-          credentialCard({ ...item, channel: "claudecode" })
-        ).join("");
+        els.publicList.innerHTML = (items || []).map(credentialCard).join("");
         setStatus(els.publicStatus, t("publicReady"));
       }
 
-      /* ── Auth ── */
       async function login() {
         localStorage.setItem(TOKEN_KEY, els.tokenInput.value.trim());
         try {
-          await api(`${apiBase()}/credentials`);
+          await api("/api/credentials");
           showAdmin();
           await refreshAll();
         } catch (error) {
@@ -959,21 +631,12 @@
         els.adminPage.classList.remove("hidden");
       }
 
-      /* ── Tab switching ── */
       function setTab(tab) {
         const isCredentials = tab === "credentials";
         els.credentialsTab.classList.toggle("active", isCredentials);
         els.oauthTab.classList.toggle("active", !isCredentials);
         els.credentialsPanel.classList.toggle("hidden", !isCredentials);
         els.oauthPanel.classList.toggle("hidden", isCredentials);
-      }
-
-      function setChannel(channel) {
-        currentChannel = channel;
-        localStorage.setItem(CHANNEL_KEY, channel);
-        els.channelClaudeTab.classList.toggle("active", channel === "claudecode");
-        els.channelCodexTab.classList.toggle("active", channel === "codex");
-        applyLanguage();
       }
 
       async function refreshAll() {
@@ -985,7 +648,6 @@
         }
       }
 
-      /* ── Language ── */
       function applyLanguage() {
         localStorage.setItem(LANG_KEY, lang);
         els.langZh.classList.toggle("active", lang === "zh");
@@ -998,15 +660,13 @@
         els.logoutBtn.textContent = t("logout");
         els.credentialsTab.textContent = t("credentials");
         els.oauthTab.textContent = t("oauth");
-        els.importTitle.textContent = currentChannel === "codex" ? t("codexImportTitle") : t("claudecodeImportTitle");
+        els.importTitle.textContent = t("importTitle");
         els.importBtn.textContent = t("importBtn");
-        els.oauthTitle.textContent = currentChannel === "codex" ? t("codexOauthTitle") : t("claudecodeOauthTitle");
+        els.oauthTitle.textContent = t("oauthTitle");
         els.oauthStartBtn.textContent = t("oauthOpen");
         els.oauthCallbackBtn.textContent = t("oauthFinish");
-        els.oauthCallbackInput.placeholder = t("oauthPlaceholder");
       }
 
-      /* ── Event listeners ── */
       els.langZh.addEventListener("click", async () => {
         lang = "zh";
         applyLanguage();
@@ -1026,19 +686,11 @@
       els.logoutBtn.addEventListener("click", logout);
       els.credentialsTab.addEventListener("click", () => setTab("credentials"));
       els.oauthTab.addEventListener("click", () => setTab("oauth"));
-      els.channelClaudeTab.addEventListener("click", async () => {
-        setChannel("claudecode");
-        if (localStorage.getItem(TOKEN_KEY)) await refreshAll();
-      });
-      els.channelCodexTab.addEventListener("click", async () => {
-        setChannel("codex");
-        if (localStorage.getItem(TOKEN_KEY)) await refreshAll();
-      });
 
       els.importBtn.addEventListener("click", async () => {
         try {
           const payload = JSON.parse(els.importInput.value || "{}");
-          await api(`${apiBase()}/credentials`, {
+          await api("/api/credentials", {
             method: "POST",
             body: JSON.stringify(payload)
           });
@@ -1052,7 +704,7 @@
 
       els.oauthStartBtn.addEventListener("click", async () => {
         try {
-          const payload = await api(`${apiBase()}/oauth/start`, {
+          const payload = await api("/api/oauth/start", {
             method: "POST",
             body: "{}"
           });
@@ -1065,7 +717,7 @@
 
       els.oauthCallbackBtn.addEventListener("click", async () => {
         try {
-          await api(`${apiBase()}/oauth/callback`, {
+          await api("/api/oauth/callback", {
             method: "POST",
             body: JSON.stringify({ callback_url: els.oauthCallbackInput.value })
           });
@@ -1088,12 +740,12 @@
             return;
           }
           if (button.dataset.delete) {
-            await api(`${apiBase()}/credentials/${button.dataset.delete}`, { method: "DELETE" });
+            await api(`/api/credentials/${button.dataset.delete}`, { method: "DELETE" });
             await refreshAll();
             return;
           }
           if (button.dataset.toggle) {
-            await api(`${apiBase()}/credentials/${button.dataset.toggle}/${button.dataset.action}`, {
+            await api(`/api/credentials/${button.dataset.toggle}/${button.dataset.action}`, {
               method: "POST",
               body: "{}"
             });
@@ -1112,9 +764,7 @@
         }
       }
 
-      /* ── Boot ── */
       async function boot() {
-        setChannel(currentChannel);
         applyLanguage();
         if (MODE === "usage") {
           els.usagePage.classList.remove("hidden");
@@ -1125,7 +775,7 @@
         els.tokenInput.value = token;
         if (token) {
           try {
-            await api(`${apiBase()}/credentials`);
+            await api("/api/credentials");
             showAdmin();
             await refreshAll();
             return;

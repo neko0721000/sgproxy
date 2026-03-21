@@ -1,6 +1,6 @@
 # SGProxy
 
-A multi-channel API credential proxy service built on Cloudflare Workers + Durable Objects. Manages credentials for ClaudeCode and Codex with automatic rotation, OAuth, and usage tracking.
+A ClaudeCode credential gateway built on Cloudflare Workers + Durable Objects, with OAuth import, credential rotation, quota inspection, and header-only `/v1/*` proxying.
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/LeenHawk/sgproxy)
 
@@ -8,19 +8,19 @@ A multi-channel API credential proxy service built on Cloudflare Workers + Durab
 
 ## Features
 
-- **Dual-channel support** — Proxy for ClaudeCode (Anthropic) and Codex (OpenAI)
-- **Smart credential selection** — Automatically picks the best credential based on rate limits
-- **OAuth integration** — Full OAuth2 + PKCE flow for credential import
-- **Auto-refresh** — Tokens refreshed before expiration; failed refreshes mark credentials as Dead
-- **Usage tracking** — Monitors request and token usage across 5-hour / 7-day windows
-- **Rate limit handling** — Automatically rotates to next credential on 429 responses
-- **Admin UI** — Web dashboard with dark mode and i18n (Chinese / English)
-- **Public usage page** — View credential status without authentication
+- **ClaudeCode only** — Anthropic ClaudeCode proxy only
+- **Header-only forwarding** — request/response bodies pass through untouched
+- **OAuth import** — OAuth2 + PKCE credential import
+- **Auto refresh** — refresh before expiry, mark invalid credentials as `dead`
+- **Quota tracking** — 5h / 7d / 7d Sonnet usage windows
+- **429 rotation** — no replay for the current request, only switch later requests
+- **Admin UI** — embedded web UI with Chinese / English support
+- **Public usage page** — inspect credential state without login
 
 ## Tech Stack
 
 - **Runtime**: Cloudflare Workers + Durable Objects (SQLite)
-- **Language**: Rust → WebAssembly
+- **Language**: Rust -> WebAssembly
 - **Build**: worker-build + Cargo
 
 ## Quick Start
@@ -34,97 +34,90 @@ A multi-channel API credential proxy service built on Cloudflare Workers + Durab
 ### Local Development
 
 ```bash
-# 1. Clone the repo
 git clone <repo-url> && cd sgproxy
-
-# 2. Set environment variables
 echo 'ADMIN_TOKEN=your-secret-token' > .env
-
-# 3. Start the dev server
 wrangler dev
 ```
 
-Open `http://localhost:8787/` to access the admin dashboard.
+Open `http://localhost:8787/`.
 
-### Deploy to Cloudflare
+### Deploy
 
 ```bash
 wrangler deploy
 ```
 
-After deploying, set the `ADMIN_TOKEN` secret in Cloudflare Dashboard.
+After deployment, set the `ADMIN_TOKEN` secret in Cloudflare Dashboard.
 
 ## Usage
 
-### Adding Credentials
+### Add Credentials
 
-Three methods:
-
-1. **OAuth Import** — Click "OAuth Import" in the admin UI and complete the authorization flow
-2. **JSON Import** — Paste credential JSON in the admin UI:
+1. **OAuth import** — use the `OAuth` tab in the admin page
+2. **JSON import** — paste:
    ```json
    {
      "access_token": "sk-...",
      "refresh_token": "sk-..."
    }
    ```
-3. **API Import** — Call the management API:
+3. **API import**
    ```bash
-   curl -X POST https://your-worker.dev/api/claudecode/credentials \
+   curl -X POST https://your-worker.dev/api/credentials \
      -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
      -H "Content-Type: application/json" \
-     -d '{"access_token":"sk-...", "refresh_token":"sk-..."}'
+     -d '{"access_token":"sk-...","refresh_token":"sk-..."}'
    ```
 
-### Proxying Requests
+### Proxy Requests
 
-Point your client's API base URL to your Worker:
+Point your client at:
 
-- **ClaudeCode**: `https://your-worker.dev/v1/...`
-- **Codex**: `https://your-worker.dev/codex/...`
+- `https://your-worker.dev/v1/...`
 
-The proxy automatically injects credentials, handles rate limits, and refreshes tokens.
+The gateway overwrites upstream `authorization` and ensures the required Anthropic headers.
 
-### Monitoring
+### Pages
 
-- `/usage` — Public credential status and usage page
-- `/` — Admin dashboard (requires ADMIN_TOKEN login)
+- `/` admin page
+- `/usage` public usage page
 
 ## API Endpoints
 
-### Proxy Endpoints
+### Proxy
 
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/v1/*` | Proxy ClaudeCode requests |
-| POST | `/codex/*` | Proxy Codex requests |
+| ANY | `/v1/*` | Proxy ClaudeCode requests |
 
-### Management Endpoints (Bearer Token required)
+### Admin
 
-Prefixed with `/api/{channel}/`, where `{channel}` is `claudecode` or `codex`:
+Supports `Authorization: Bearer <ADMIN_TOKEN>` and `x-api-key: <ADMIN_TOKEN>`.
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/credentials` | List all credentials |
-| POST | `/credentials` | Import a credential |
-| DELETE | `/credentials/{id}` | Delete a credential |
-| POST | `/credentials/{id}/enable` | Enable a credential |
-| POST | `/credentials/{id}/disable` | Disable a credential |
-| GET | `/credentials/usage` | View usage for all credentials |
-| POST | `/oauth/start` | Start OAuth flow |
-| POST | `/oauth/callback` | Complete OAuth callback |
+| GET | `/api/public/credentials` | Public credential usage |
+| GET | `/api/credentials` | List credentials |
+| POST | `/api/credentials` | Import credentials |
+| PUT | `/api/credentials/{id}` | Update credentials |
+| DELETE | `/api/credentials/{id}` | Delete credentials |
+| POST | `/api/credentials/{id}/enable` | Enable credential |
+| POST | `/api/credentials/{id}/disable` | Disable credential |
+| GET | `/api/credentials/usage` | List usage |
+| GET | `/api/credentials/usage/{id}` | Get usage for one credential |
+| POST | `/api/oauth/start` | Start OAuth |
+| POST | `/api/oauth/callback` | Complete OAuth |
 
 ## Project Structure
 
-```
+```text
 src/
-├── lib.rs          # Entry point, routes requests to Durable Object
-├── do_state.rs     # Durable Object implementation, management API routes
-├── config.rs       # Data models, constants
-├── proxy.rs        # HTTP request proxying logic
-├── oauth.rs        # OAuth flows, token refresh, usage fetching
-├── state.rs        # Storage operations, credential selection algorithm
-├── tokenizer.rs    # Codex token counting
+├── lib.rs
+├── do_state.rs
+├── config.rs
+├── proxy.rs
+├── oauth.rs
+├── state.rs
 └── web/
-    └── index.html  # Single-page admin dashboard
+    └── index.html
 ```
