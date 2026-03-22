@@ -738,7 +738,7 @@
         const toggleAction = item.enabled ? "disable" : "enable";
         const toggleLabel = item.enabled ? t("disable") : t("enable");
         const jsonText = JSON.stringify(item.json || {}, null, 2);
-        const email = item.user_email || item.id;
+        const email = item.user_email || item.account_uuid || item.id;
         return `
           <div class="credential">
             <div class="credential-head">
@@ -788,6 +788,7 @@
             refresh_token: item.refresh_token,
             expires_at_unix_ms: item.expires_at_unix_ms,
             user_email: item.user_email,
+            account_uuid: item.account_uuid,
             organization_uuid: item.organization_uuid,
             subscription_type: item.subscription_type,
             rate_limit_tier: item.rate_limit_tier,

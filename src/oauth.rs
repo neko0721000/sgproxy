@@ -52,6 +52,7 @@ pub struct RefreshedCredential {
     pub refresh_token: String,
     pub expires_at_unix_ms: u64,
     pub user_email: Option<String>,
+    pub account_uuid: Option<String>,
     pub organization_uuid: Option<String>,
     pub subscription_type: Option<String>,
     pub rate_limit_tier: Option<String>,
@@ -66,6 +67,7 @@ pub enum RefreshError {
 #[derive(Debug, Clone, Default)]
 pub struct OAuthProfileParsed {
     pub email: Option<String>,
+    pub account_uuid: Option<String>,
     pub subscription_type: Option<String>,
     pub rate_limit_tier: Option<String>,
     pub organization_uuid: Option<String>,
@@ -98,6 +100,7 @@ struct OAuthProfile {
 
 #[derive(Debug, Default, Deserialize)]
 struct OAuthProfileAccount {
+    uuid: Option<String>,
     email: Option<String>,
     #[serde(default)]
     has_claude_max: bool,
@@ -355,7 +358,7 @@ async fn maybe_refresh_claudecode_access_token(
             .filter(|value| !value.is_empty())
             .unwrap_or(credential.refresh_token.as_str())
             .to_string();
-        return Ok(Some(RefreshedCredential {
+        let mut refreshed = RefreshedCredential {
             access_token,
             refresh_token,
             expires_at_unix_ms: now.saturating_add(
@@ -366,6 +369,7 @@ async fn maybe_refresh_claudecode_access_token(
                     .saturating_mul(1000),
             ),
             user_email: credential.user_email.clone(),
+            account_uuid: credential.account_uuid.clone(),
             organization_uuid: credential.organization_uuid.clone(),
             subscription_type: parsed
                 .as_ref()
@@ -373,7 +377,32 @@ async fn maybe_refresh_claudecode_access_token(
             rate_limit_tier: parsed
                 .as_ref()
                 .and_then(|item| item.rate_limit_tier.clone()),
-        }));
+        };
+        if refreshed.user_email.is_none()
+            || refreshed.account_uuid.is_none()
+            || refreshed.organization_uuid.is_none()
+            || refreshed.subscription_type.is_none()
+            || refreshed.rate_limit_tier.is_none()
+        {
+            if let Ok(profile) = fetch_oauth_profile(&refreshed.access_token).await {
+                if refreshed.user_email.is_none() {
+                    refreshed.user_email = profile.email;
+                }
+                if refreshed.account_uuid.is_none() {
+                    refreshed.account_uuid = profile.account_uuid;
+                }
+                if refreshed.organization_uuid.is_none() {
+                    refreshed.organization_uuid = profile.organization_uuid;
+                }
+                if refreshed.subscription_type.is_none() {
+                    refreshed.subscription_type = profile.subscription_type;
+                }
+                if refreshed.rate_limit_tier.is_none() {
+                    refreshed.rate_limit_tier = profile.rate_limit_tier;
+                }
+            }
+        }
+        return Ok(Some(refreshed));
     }
 
     let error = parsed
@@ -419,6 +448,7 @@ fn parse_profile(profile: OAuthProfile) -> OAuthProfileParsed {
 
     OAuthProfileParsed {
         email: profile.account.email,
+        account_uuid: profile.account.uuid,
         subscription_type,
         rate_limit_tier: profile.organization.rate_limit_tier,
         organization_uuid: profile.organization.uuid,

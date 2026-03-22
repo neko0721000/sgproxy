@@ -22,7 +22,7 @@ pub async fn proxy_request(
 ) -> Result<ProxyOutcome> {
     let upstream_url = build_upstream_url(&req)?;
     let headers = build_upstream_headers(req.headers(), credential.access_token.as_str())?;
-    let transformed_body = maybe_prepare_json_body(&mut req).await?;
+    let transformed_body = maybe_prepare_json_body(&mut req, credential).await?;
 
     let mut init = RequestInit::new();
     init.with_method(req.method()).with_headers(headers);
@@ -136,7 +136,10 @@ fn is_hop_by_hop(name: &str) -> bool {
     )
 }
 
-async fn maybe_prepare_json_body(req: &mut Request) -> Result<Option<Vec<u8>>> {
+async fn maybe_prepare_json_body(
+    req: &mut Request,
+    credential: &CredentialConfig,
+) -> Result<Option<Vec<u8>>> {
     if !request_body_should_be_rewritten(req) {
         return Ok(None);
     }
@@ -152,6 +155,7 @@ async fn maybe_prepare_json_body(req: &mut Request) -> Result<Option<Vec<u8>>> {
     };
 
     apply_magic_string_cache_control_triggers(&mut body);
+    apply_claudecode_metadata_user_id(&mut body, credential);
     apply_claudecode_billing_header_system_block(&mut body, request_claudecode_version(req));
     Ok(Some(serde_json::to_vec(&body)?))
 }
@@ -191,6 +195,130 @@ fn request_claudecode_version(req: &Request) -> String {
                 .unwrap_or(DEFAULT_USER_AGENT)
                 .to_string()
         })
+}
+
+fn apply_claudecode_metadata_user_id(body: &mut Value, credential: &CredentialConfig) {
+    canonicalize_claude_body(body);
+    let session_seed = session_seed_from_body(body)
+        .filter(|value| !value.is_empty())
+        .unwrap_or_else(|| credential.id.clone());
+    let Some(map) = body.as_object_mut() else {
+        return;
+    };
+
+    if map
+        .get("metadata")
+        .and_then(Value::as_object)
+        .and_then(|metadata| metadata.get("user_id"))
+        .and_then(Value::as_str)
+        .is_some_and(|value| !value.trim().is_empty())
+    {
+        return;
+    }
+
+    let metadata = map
+        .entry("metadata".to_string())
+        .or_insert_with(|| Value::Object(serde_json::Map::new()));
+    let Some(metadata_map) = metadata.as_object_mut() else {
+        return;
+    };
+
+    let account_uuid = credential.account_uuid.clone().unwrap_or_default();
+    let device_seed = credential
+        .account_uuid
+        .as_deref()
+        .filter(|value| !value.trim().is_empty())
+        .or_else(|| {
+            credential
+                .organization_uuid
+                .as_deref()
+                .filter(|value| !value.trim().is_empty())
+        })
+        .or_else(|| {
+            credential
+                .user_email
+                .as_deref()
+                .filter(|value| !value.trim().is_empty())
+        })
+        .unwrap_or(credential.id.as_str());
+
+    metadata_map.insert(
+        "user_id".to_string(),
+        Value::String(
+            json!({
+                "device_id": sha256_hex(format!("sgproxy.claudecode.device:{device_seed}").as_str()),
+                "account_uuid": account_uuid,
+                "session_id": stable_session_uuid(session_seed.as_str()),
+            })
+            .to_string(),
+        ),
+    );
+}
+
+fn session_seed_from_body(body: &Value) -> Option<String> {
+    system_session_seed(body).or_else(|| first_message_session_seed(body))
+}
+
+fn system_session_seed(body: &Value) -> Option<String> {
+    match body.get("system")? {
+        Value::String(text) => non_empty_owned(text),
+        Value::Array(blocks) => {
+            let text = blocks
+                .iter()
+                .filter_map(first_text_from_claude_block)
+                .collect::<Vec<_>>()
+                .join("\n");
+            non_empty_owned(text.as_str())
+        }
+        Value::Object(_) => first_text_from_claude_block(body.get("system")?),
+        _ => None,
+    }
+}
+
+fn first_message_session_seed(body: &Value) -> Option<String> {
+    let messages = body.get("messages")?.as_array()?;
+    let first = messages.first()?.as_object()?;
+    first
+        .get("content")
+        .and_then(first_text_from_claude_content)
+        .or_else(|| first.get("role").and_then(Value::as_str).map(ToOwned::to_owned))
+        .and_then(|value| non_empty_owned(value.as_str()))
+}
+
+fn non_empty_owned(value: &str) -> Option<String> {
+    let trimmed = value.trim();
+    (!trimmed.is_empty()).then(|| trimmed.to_string())
+}
+
+fn sha256_hex(value: &str) -> String {
+    format!("{:x}", Sha256::digest(value.as_bytes()))
+}
+
+fn stable_session_uuid(seed: &str) -> String {
+    let digest = Sha256::digest(format!("sgproxy.claudecode.session:{seed}").as_bytes());
+    let mut bytes = [0_u8; 16];
+    bytes.copy_from_slice(&digest[..16]);
+    bytes[6] = (bytes[6] & 0x0f) | 0x50;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    format!(
+        "{:02x}{:02x}{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}",
+        bytes[0],
+        bytes[1],
+        bytes[2],
+        bytes[3],
+        bytes[4],
+        bytes[5],
+        bytes[6],
+        bytes[7],
+        bytes[8],
+        bytes[9],
+        bytes[10],
+        bytes[11],
+        bytes[12],
+        bytes[13],
+        bytes[14],
+        bytes[15]
+    )
 }
 
 fn apply_claudecode_billing_header_system_block(body: &mut Value, version: String) {
@@ -521,6 +649,27 @@ fn count_cache_controls_in_content(content: &Value) -> usize {
 mod tests {
     use super::*;
 
+    fn sample_credential() -> CredentialConfig {
+        CredentialConfig {
+            id: "cred_test".to_string(),
+            channel: crate::config::ChannelKind::ClaudeCode,
+            enabled: true,
+            order: 1,
+            access_token: "token".to_string(),
+            refresh_token: "refresh".to_string(),
+            expires_at_unix_ms: 0,
+            user_email: Some("user@example.com".to_string()),
+            account_uuid: Some("acct_123".to_string()),
+            organization_uuid: Some("org_123".to_string()),
+            subscription_type: None,
+            rate_limit_tier: None,
+            status: crate::config::CredentialStatus::Healthy,
+            cooldown_until_unix_ms: None,
+            last_error: None,
+            last_used_at_unix_ms: None,
+        }
+    }
+
     #[test]
     fn injects_billing_header_when_missing() {
         let mut body = json!({
@@ -585,6 +734,67 @@ mod tests {
                 .as_str()
                 .unwrap()
                 .contains(MAGIC_TRIGGER_5M_ID)
+        );
+    }
+
+    #[test]
+    fn injects_metadata_user_id_when_missing() {
+        let mut body = json!({
+            "system": "system prompt",
+            "messages": [
+                {"role":"user","content":"hello world"}
+            ]
+        });
+
+        apply_claudecode_metadata_user_id(&mut body, &sample_credential());
+
+        let user_id = body["metadata"]["user_id"].as_str().unwrap();
+        let parsed: Value = serde_json::from_str(user_id).unwrap();
+        assert_eq!(parsed["account_uuid"], json!("acct_123"));
+        assert_eq!(
+            parsed["device_id"],
+            json!(sha256_hex("sgproxy.claudecode.device:acct_123"))
+        );
+        assert_eq!(
+            parsed["session_id"],
+            json!(stable_session_uuid("system prompt"))
+        );
+    }
+
+    #[test]
+    fn preserves_existing_metadata_user_id() {
+        let mut body = json!({
+            "metadata": {
+                "user_id": "{\"device_id\":\"x\",\"account_uuid\":\"y\",\"session_id\":\"z\"}"
+            },
+            "messages": [
+                {"role":"user","content":"hello world"}
+            ]
+        });
+
+        apply_claudecode_metadata_user_id(&mut body, &sample_credential());
+
+        assert_eq!(
+            body["metadata"]["user_id"].as_str().unwrap(),
+            "{\"device_id\":\"x\",\"account_uuid\":\"y\",\"session_id\":\"z\"}"
+        );
+    }
+
+    #[test]
+    fn session_id_falls_back_to_first_message_text() {
+        let mut body = json!({
+            "messages": [
+                {"role":"user","content":"hello world"}
+            ]
+        });
+
+        apply_claudecode_metadata_user_id(&mut body, &sample_credential());
+
+        let user_id = body["metadata"]["user_id"].as_str().unwrap();
+        let parsed: Value = serde_json::from_str(user_id).unwrap();
+        assert_eq!(
+            parsed["session_id"],
+            json!(stable_session_uuid("hello world"))
         );
     }
 }

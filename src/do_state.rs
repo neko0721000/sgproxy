@@ -255,6 +255,7 @@ impl SgproxyState {
                         .saturating_add(token.expires_in.unwrap_or(3600).saturating_mul(1000)),
                 ),
                 user_email: profile.as_ref().and_then(|item| item.email.clone()),
+                account_uuid: profile.as_ref().and_then(|item| item.account_uuid.clone()),
                 organization_uuid: token.organization_uuid.clone().or_else(|| {
                     profile
                         .as_ref()
@@ -438,6 +439,11 @@ impl SgproxyState {
             .clone()
             .and_then(|value| crate::config::clean_opt_owned(Some(value)))
             .or_else(|| existing.as_ref().and_then(|item| item.user_email.clone()));
+        let mut account_uuid = input
+            .account_uuid
+            .clone()
+            .and_then(|value| crate::config::clean_opt_owned(Some(value)))
+            .or_else(|| existing.as_ref().and_then(|item| item.account_uuid.clone()));
         let mut organization_uuid = input
             .organization_uuid
             .clone()
@@ -485,6 +491,7 @@ impl SgproxyState {
                 refresh_token: refresh,
                 expires_at_unix_ms: expires_at_unix_ms.unwrap_or(0),
                 user_email: user_email.clone(),
+                account_uuid: account_uuid.clone(),
                 organization_uuid: organization_uuid.clone(),
                 subscription_type: subscription_type.clone(),
                 rate_limit_tier: rate_limit_tier.clone(),
@@ -506,6 +513,9 @@ impl SgproxyState {
                 if user_email.is_none() {
                     user_email = refreshed.user_email;
                 }
+                if account_uuid.is_none() {
+                    account_uuid = refreshed.account_uuid;
+                }
                 if organization_uuid.is_none() {
                     organization_uuid = refreshed.organization_uuid;
                 }
@@ -520,6 +530,7 @@ impl SgproxyState {
 
         let access_token = access_token.ok_or_else(|| anyhow!("missing access_token"))?;
         if user_email.is_none()
+            || account_uuid.is_none()
             || organization_uuid.is_none()
             || subscription_type.is_none()
             || rate_limit_tier.is_none()
@@ -527,6 +538,9 @@ impl SgproxyState {
             let profile = fetch_oauth_profile(&access_token).await?;
             if user_email.is_none() {
                 user_email = profile.email;
+            }
+            if account_uuid.is_none() {
+                account_uuid = profile.account_uuid;
             }
             if organization_uuid.is_none() {
                 organization_uuid = profile.organization_uuid;
@@ -554,6 +568,7 @@ impl SgproxyState {
             refresh_token,
             expires_at_unix_ms: Some(expires_at_unix_ms.unwrap_or(0)),
             user_email,
+            account_uuid,
             organization_uuid,
             subscription_type,
             rate_limit_tier,
@@ -740,6 +755,7 @@ fn apply_refreshed_credential(
             refresh_token: Some(refreshed.refresh_token),
             expires_at_unix_ms: Some(refreshed.expires_at_unix_ms),
             user_email: refreshed.user_email.or(credential.user_email.clone()),
+            account_uuid: refreshed.account_uuid.or(credential.account_uuid.clone()),
             organization_uuid: refreshed
                 .organization_uuid
                 .or(credential.organization_uuid.clone()),

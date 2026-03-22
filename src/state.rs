@@ -89,6 +89,7 @@ pub fn upsert_credential(
         refresh_token: input.refresh_token.unwrap_or_default(),
         expires_at_unix_ms: input.expires_at_unix_ms.unwrap_or(0),
         user_email: clean_opt_owned(input.user_email),
+        account_uuid: clean_opt_owned(input.account_uuid),
         organization_uuid: clean_opt_owned(input.organization_uuid),
         subscription_type: clean_opt_owned(input.subscription_type),
         rate_limit_tier: clean_opt_owned(input.rate_limit_tier),

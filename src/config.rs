@@ -62,6 +62,8 @@ pub struct CredentialConfig {
     #[serde(default)]
     pub user_email: Option<String>,
     #[serde(default)]
+    pub account_uuid: Option<String>,
+    #[serde(default)]
     pub organization_uuid: Option<String>,
     #[serde(default)]
     pub subscription_type: Option<String>,
@@ -149,6 +151,8 @@ pub struct CredentialUpsertInput {
     #[serde(default)]
     pub user_email: Option<String>,
     #[serde(default)]
+    pub account_uuid: Option<String>,
+    #[serde(default)]
     pub organization_uuid: Option<String>,
     #[serde(default)]
     pub subscription_type: Option<String>,
@@ -162,6 +166,7 @@ pub struct CredentialJsonView {
     pub refresh_token: String,
     pub expires_at_unix_ms: u64,
     pub user_email: Option<String>,
+    pub account_uuid: Option<String>,
     pub organization_uuid: Option<String>,
     pub subscription_type: Option<String>,
     pub rate_limit_tier: Option<String>,
@@ -190,6 +195,7 @@ impl DurableStateDoc {
             credential.access_token = credential.access_token.trim().to_string();
             credential.refresh_token = credential.refresh_token.trim().to_string();
             credential.user_email = clean_opt_owned(credential.user_email.take());
+            credential.account_uuid = clean_opt_owned(credential.account_uuid.take());
             credential.organization_uuid = clean_opt_owned(credential.organization_uuid.take());
             credential.subscription_type = clean_opt_owned(credential.subscription_type.take());
             credential.rate_limit_tier = clean_opt_owned(credential.rate_limit_tier.take());
@@ -222,6 +228,7 @@ impl CredentialConfig {
             refresh_token: self.refresh_token.clone(),
             expires_at_unix_ms: self.expires_at_unix_ms,
             user_email: self.user_email.clone(),
+            account_uuid: self.account_uuid.clone(),
             organization_uuid: self.organization_uuid.clone(),
             subscription_type: self.subscription_type.clone(),
             rate_limit_tier: self.rate_limit_tier.clone(),
