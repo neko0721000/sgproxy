@@ -67,7 +67,7 @@ fn build_upstream_headers(original: &Headers, access_token: &str) -> Result<Head
         if is_hop_by_hop(&lower)
             || matches!(
                 lower.as_str(),
-                "host" | "content-length" | "authorization" | "cookie"
+                "host" | "content-length" | "authorization" | "cookie" | "x-api-key"
             )
         {
             continue;
@@ -154,6 +154,7 @@ async fn maybe_prepare_json_body(
         Err(_) => return Ok(Some(bytes)),
     };
 
+    normalize_claudecode_sampling(&mut body);
     apply_magic_string_cache_control_triggers(&mut body);
     apply_claudecode_metadata_user_id(&mut body, credential);
     apply_claudecode_billing_header_system_block(&mut body, request_claudecode_version(req));
@@ -195,6 +196,18 @@ fn request_claudecode_version(req: &Request) -> String {
                 .unwrap_or(DEFAULT_USER_AGENT)
                 .to_string()
         })
+}
+
+fn normalize_claudecode_sampling(body: &mut Value) {
+    let Some(map) = body.as_object_mut() else {
+        return;
+    };
+
+    let has_temperature = map.get("temperature").and_then(Value::as_f64).is_some();
+    let has_top_p = map.get("top_p").and_then(Value::as_f64).is_some();
+    if has_temperature && has_top_p {
+        map.remove("top_p");
+    }
 }
 
 fn apply_claudecode_metadata_user_id(body: &mut Value, credential: &CredentialConfig) {
@@ -281,7 +294,12 @@ fn first_message_session_seed(body: &Value) -> Option<String> {
     first
         .get("content")
         .and_then(first_text_from_claude_content)
-        .or_else(|| first.get("role").and_then(Value::as_str).map(ToOwned::to_owned))
+        .or_else(|| {
+            first
+                .get("role")
+                .and_then(Value::as_str)
+                .map(ToOwned::to_owned)
+        })
         .and_then(|value| non_empty_owned(value.as_str()))
 }
 
@@ -796,5 +814,31 @@ mod tests {
             parsed["session_id"],
             json!(stable_session_uuid("hello world"))
         );
+    }
+
+    #[test]
+    fn drops_top_p_when_temperature_is_present() {
+        let mut body = json!({
+            "temperature": 0.7,
+            "top_p": 0.9,
+            "messages": []
+        });
+
+        normalize_claudecode_sampling(&mut body);
+
+        assert_eq!(body["temperature"], json!(0.7));
+        assert!(body.get("top_p").is_none());
+    }
+
+    #[test]
+    fn keeps_top_p_when_temperature_is_absent() {
+        let mut body = json!({
+            "top_p": 0.9,
+            "messages": []
+        });
+
+        normalize_claudecode_sampling(&mut body);
+
+        assert_eq!(body["top_p"], json!(0.9));
     }
 }
