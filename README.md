@@ -8,6 +8,8 @@
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/LeenHawk/sgproxy)
 
+Deploy Button 会读取 [`.dev.vars.example`](/home/linhuan/develop/sgproxy/.dev.vars.example)，并在部署时提示填写必需的 `ADMIN_TOKEN` secret。
+
 [English](./README.en.md)
 
 ## 功能特性
@@ -56,7 +58,7 @@ worker-build --release
 wrangler deploy
 ```
 
-部署后在 Cloudflare Dashboard 设置 `ADMIN_TOKEN` secret。
+如果没有在 Deploy Button 流程里填写，就需要在 Cloudflare Dashboard 再设置 `ADMIN_TOKEN` secret。
 
 ## 使用方式
 
@@ -130,4 +132,3 @@ src/
 └── web/
     └── index.html
 ```
-

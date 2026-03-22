@@ -8,6 +8,8 @@ A ClaudeCode credential gateway built on Cloudflare Workers + Durable Objects, w
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/LeenHawk/sgproxy)
 
+The Deploy Button reads [`.dev.vars.example`](/home/linhuan/develop/sgproxy/.dev.vars.example) and will prompt for the required `ADMIN_TOKEN` secret during setup.
+
 [中文](./README.md)
 
 ## Features
@@ -56,7 +58,7 @@ worker-build --release
 wrangler deploy
 ```
 
-After deployment, set the `ADMIN_TOKEN` secret in Cloudflare Dashboard.
+If you did not use the Deploy Button prompt, set the `ADMIN_TOKEN` secret in Cloudflare Dashboard.
 
 ## Usage
 
@@ -130,4 +132,3 @@ src/
 └── web/
     └── index.html
 ```
-
