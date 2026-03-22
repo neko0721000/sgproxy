@@ -132,3 +132,7 @@ src/
 └── web/
     └── index.html
 ```
+
+## 社区讨论
+
+感谢 [V2EX](https://www.v2ex.com/t/1200134#reply0) 和 [Linux.do](https://linux.do/) 以及其他社区的同好的技术反馈

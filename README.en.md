@@ -132,3 +132,6 @@ src/
 └── web/
     └── index.html
 ```
+
+## Community Discusion
+Thanks to the technical feedback from enthusiasts on [V2EX](https://www.v2ex.com/t/1200134#reply0), [Linux.do](https://linux.do/), and other communities.
