@@ -261,6 +261,7 @@ async fn maybe_prepare_request(
     normalize_claudecode_sampling(&mut body);
     apply_magic_string_cache_control_triggers(&mut body);
     apply_claudecode_metadata_user_id(&mut body, credential);
+    flatten_system_text_before_cache_control(&mut body);
     apply_claudecode_billing_header_system_block(&mut body, request_claudecode_version(req));
     Ok(PreparedProxyRequest {
         body: Some(serde_json::to_vec(&body)?),
@@ -503,6 +504,51 @@ fn apply_claudecode_billing_header_system_block(body: &mut Value, version: Strin
     }
 }
 
+fn flatten_system_text_before_cache_control(body: &mut Value) {
+    canonicalize_claude_body(body);
+    let Some(blocks) = body.get_mut("system").and_then(Value::as_array_mut) else {
+        return;
+    };
+
+    let mut merge_ranges = Vec::new();
+    let mut run_start = None;
+    let mut run_text = String::new();
+
+    for (index, block) in blocks.iter().enumerate() {
+        if is_claudecode_billing_header_block(block) {
+            run_start = None;
+            run_text.clear();
+            continue;
+        }
+
+        if block_has_cache_control(block) {
+            if let Some(start) = run_start.take()
+                && index.saturating_sub(start) > 1
+            {
+                merge_ranges.push((start, index, std::mem::take(&mut run_text)));
+            } else {
+                run_text.clear();
+            }
+            continue;
+        }
+
+        if let Some(text) = block_text(block) {
+            if run_start.is_none() {
+                run_start = Some(index);
+            }
+            run_text.push_str(text);
+            continue;
+        }
+
+        run_start = None;
+        run_text.clear();
+    }
+
+    for (start, end, text) in merge_ranges.into_iter().rev() {
+        blocks.splice(start..end, [json_text_block(text.as_str())]);
+    }
+}
+
 fn build_claudecode_billing_header_text(body: &Value, version: &str) -> String {
     let user_text = first_claudecode_user_text(body);
     let version_hash = claudecode_billing_version_hash(user_text.as_str(), version);
@@ -531,6 +577,20 @@ fn first_claudecode_user_text(body: &Value) -> String {
             })
         })
         .unwrap_or_default()
+}
+
+fn block_has_cache_control(block: &Value) -> bool {
+    block
+        .as_object()
+        .is_some_and(|block_map| block_map.contains_key("cache_control"))
+}
+
+fn block_text(block: &Value) -> Option<&str> {
+    let block_map = block.as_object()?;
+    if block_map.get("type").and_then(Value::as_str) != Some("text") {
+        return None;
+    }
+    block_map.get("text").and_then(Value::as_str)
 }
 
 fn first_text_from_claude_content(content: &Value) -> Option<String> {
@@ -859,6 +919,63 @@ mod tests {
         assert_eq!(
             body["system"][0]["text"].as_str().unwrap(),
             "x-anthropic-billing-header: cc_version=already.there; cc_entrypoint=cli; cch=99999;"
+        );
+    }
+
+    #[test]
+    fn flatten_system_text_before_cache_control_merges_text_blocks_before_cache_points() {
+        let mut body = json!({
+            "system": [
+                {"type":"text","text":"a"},
+                {"type":"text","text":"b"},
+                {"type":"text","text":"c","cache_control":{"type":"ephemeral","ttl":"5m"}},
+                {"type":"text","text":"d"},
+                {"type":"text","text":"e"},
+                {"type":"text","text":"f","cache_control":{"type":"ephemeral","ttl":"1h"}},
+                {"type":"text","text":"g"}
+            ]
+        });
+
+        flatten_system_text_before_cache_control(&mut body);
+
+        assert_eq!(
+            body["system"],
+            json!([
+                {"type":"text","text":"ab"},
+                {"type":"text","text":"c","cache_control":{"type":"ephemeral","ttl":"5m"}},
+                {"type":"text","text":"de"},
+                {"type":"text","text":"f","cache_control":{"type":"ephemeral","ttl":"1h"}},
+                {"type":"text","text":"g"}
+            ])
+        );
+    }
+
+    #[test]
+    fn flatten_system_text_before_cache_control_preserves_leading_billing_header() {
+        let mut body = json!({
+            "system": [
+                {
+                    "type":"text",
+                    "text":"x-anthropic-billing-header: cc_version=already.there; cc_entrypoint=cli; cch=99999;"
+                },
+                {"type":"text","text":"a"},
+                {"type":"text","text":"b"},
+                {"type":"text","text":"c","cache_control":{"type":"ephemeral","ttl":"5m"}}
+            ]
+        });
+
+        flatten_system_text_before_cache_control(&mut body);
+
+        assert_eq!(
+            body["system"],
+            json!([
+                {
+                    "type":"text",
+                    "text":"x-anthropic-billing-header: cc_version=already.there; cc_entrypoint=cli; cch=99999;"
+                },
+                {"type":"text","text":"ab"},
+                {"type":"text","text":"c","cache_control":{"type":"ephemeral","ttl":"5m"}}
+            ])
         );
     }
 
