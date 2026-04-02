@@ -89,7 +89,6 @@ pub struct CredentialConfig {
 pub enum ChannelKind {
     #[default]
     ClaudeCode,
-    Codex,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
@@ -99,10 +98,6 @@ pub enum CredentialStatus {
     Healthy,
     Cooldown5h,
     Cooldown7d,
-    CooldownSonnet7d,
-    CodexReviewLimit,
-    CodexPrimaryLimit,
-    CodexSecondaryLimit,
     Dead,
 }
 
@@ -213,12 +208,7 @@ impl DurableStateDoc {
             credential.last_error = clean_opt_owned(credential.last_error.take());
             if matches!(
                 credential.status,
-                CredentialStatus::Cooldown5h
-                    | CredentialStatus::Cooldown7d
-                    | CredentialStatus::CooldownSonnet7d
-                    | CredentialStatus::CodexReviewLimit
-                    | CredentialStatus::CodexPrimaryLimit
-                    | CredentialStatus::CodexSecondaryLimit
+                CredentialStatus::Cooldown5h | CredentialStatus::Cooldown7d
             ) && credential
                 .cooldown_until_unix_ms
                 .is_some_and(|until| until <= now)

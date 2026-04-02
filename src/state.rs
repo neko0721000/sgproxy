@@ -355,6 +355,11 @@ mod tests {
         assert_eq!(state.state_id, "new_state");
         assert!(doc.oauth_states.is_empty());
     }
+
+    #[test]
+    fn parse_unix_ms_supports_seconds_timestamps() {
+        assert_eq!(parse_unix_ms(Some("1775116800")), Some(1_775_116_800_000));
+    }
 }
 
 fn exact_usage_status(
@@ -372,7 +377,7 @@ fn exact_usage_status(
     }
     if usage.seven_day_sonnet.utilization_pct == Some(100) {
         return Some((
-            CredentialStatus::CooldownSonnet7d,
+            CredentialStatus::Cooldown7d,
             bucket_reset_or(
                 &usage.seven_day_sonnet.resets_at,
                 now.saturating_add(SEVEN_DAY_WINDOW_MS),
@@ -401,7 +406,11 @@ fn parse_unix_ms(raw: Option<&str>) -> Option<u64> {
         return None;
     }
     if let Ok(value) = raw.parse::<u64>() {
-        return Some(value);
+        return Some(if value < 1_000_000_000_000 {
+            value.checked_mul(1000)?
+        } else {
+            value
+        });
     }
     let value = OffsetDateTime::parse(raw, &Rfc3339).ok()?;
     let unix_ms = value.unix_timestamp_nanos() / 1_000_000;

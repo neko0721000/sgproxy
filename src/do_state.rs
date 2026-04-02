@@ -334,26 +334,15 @@ impl SgproxyState {
                         );
                     }
                     429 => {
-                        let (usage_credential, usage) =
-                            self.fetch_usage_snapshot(&mut doc, &selected).await;
-                        if usage.last_error.is_none() {
-                            record_rate_limited(
-                                &mut doc,
-                                &usage_credential.id,
-                                now,
-                                Some(&usage),
-                                None,
-                            );
+                        if let Some(usage) = outcome.rate_limit_usage.as_ref() {
+                            record_rate_limited(&mut doc, &selected.id, now, Some(usage), None);
                         } else {
                             record_rate_limited(
                                 &mut doc,
-                                &usage_credential.id,
+                                &selected.id,
                                 now,
                                 None,
-                                Some(format!(
-                                    "upstream returned status 429; usage fetch failed: {}",
-                                    usage.last_error.unwrap_or_default()
-                                )),
+                                Some("upstream returned status 429".to_string()),
                             );
                         }
                     }

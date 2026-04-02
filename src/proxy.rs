@@ -6,9 +6,9 @@ use worker::{Fetch, Headers, Request, RequestInit, Response};
 
 use crate::config::{
     CLAUDE_CODE_BILLING_CCH, CLAUDE_CODE_BILLING_ENTRYPOINT, CLAUDE_CODE_BILLING_HEADER_PREFIX,
-    CLAUDE_CODE_BILLING_SALT, CredentialConfig, DEFAULT_ANTHROPIC_VERSION, DEFAULT_BASE_URL,
-    DEFAULT_CONTEXT_1M_BETA, DEFAULT_REQUIRED_BETA, DEFAULT_USER_AGENT, MAGIC_TRIGGER_1H_ID,
-    MAGIC_TRIGGER_5M_ID, MAGIC_TRIGGER_AUTO_ID,
+    CLAUDE_CODE_BILLING_SALT, CredentialConfig, CredentialUsageSnapshot, DEFAULT_ANTHROPIC_VERSION,
+    DEFAULT_BASE_URL, DEFAULT_CONTEXT_1M_BETA, DEFAULT_REQUIRED_BETA, DEFAULT_USER_AGENT,
+    MAGIC_TRIGGER_1H_ID, MAGIC_TRIGGER_5M_ID, MAGIC_TRIGGER_AUTO_ID,
 };
 
 pub struct ProxyOutcome {
@@ -16,6 +16,7 @@ pub struct ProxyOutcome {
     pub status_code: u16,
     pub disable_sonnet_1m: bool,
     pub disable_opus_1m: bool,
+    pub rate_limit_usage: Option<CredentialUsageSnapshot>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -78,6 +79,7 @@ pub async fn proxy_request(
         status_code = upstream_resp.status_code();
     }
 
+    let rate_limit_usage = extract_rate_limit_usage(upstream_resp.headers(), status_code)?;
     let response_headers = filter_response_headers(upstream_resp.headers())?;
     let (_, body) = upstream_resp.into_parts();
     let response = Response::builder()
@@ -90,6 +92,7 @@ pub async fn proxy_request(
         status_code,
         disable_sonnet_1m,
         disable_opus_1m,
+        rate_limit_usage,
     })
 }
 
@@ -176,6 +179,151 @@ fn filter_response_headers(original: &Headers) -> Result<Headers> {
         headers.append(&name, &value)?;
     }
     Ok(headers)
+}
+
+fn extract_rate_limit_usage(
+    headers: &Headers,
+    status_code: u16,
+) -> Result<Option<CredentialUsageSnapshot>> {
+    Ok(extract_rate_limit_usage_values(status_code, |name| {
+        headers
+            .get(name)
+            .ok()
+            .flatten()
+            .map(|value| value.trim().to_string())
+            .filter(|value| !value.is_empty())
+    }))
+}
+
+fn extract_rate_limit_usage_values<F>(
+    status_code: u16,
+    header_value: F,
+) -> Option<CredentialUsageSnapshot>
+where
+    F: Fn(&str) -> Option<String>,
+{
+    let mut usage = CredentialUsageSnapshot::default();
+    let mut saw_any = false;
+
+    saw_any |= set_bucket_from_headers(
+        &header_value,
+        "anthropic-ratelimit-unified-5h-utilization",
+        "anthropic-ratelimit-unified-5h-reset",
+        &mut usage.five_hour.utilization_pct,
+        &mut usage.five_hour.resets_at,
+    );
+    saw_any |= set_bucket_from_headers(
+        &header_value,
+        "anthropic-ratelimit-unified-7d-utilization",
+        "anthropic-ratelimit-unified-7d-reset",
+        &mut usage.seven_day.utilization_pct,
+        &mut usage.seven_day.resets_at,
+    );
+
+    let unified_rejected = header_equals(
+        &header_value,
+        "anthropic-ratelimit-unified-status",
+        "rejected",
+    );
+    let five_hour_rejected = header_equals(
+        &header_value,
+        "anthropic-ratelimit-unified-5h-status",
+        "rejected",
+    );
+    let seven_day_rejected = header_equals(
+        &header_value,
+        "anthropic-ratelimit-unified-7d-status",
+        "rejected",
+    );
+    let representative_claim = header_value("anthropic-ratelimit-unified-representative-claim");
+    let unified_reset = header_value("anthropic-ratelimit-unified-reset")
+        .and_then(|value| parse_rate_limit_reset(&value));
+
+    if status_code == 429 || unified_rejected {
+        saw_any = true;
+        if seven_day_rejected {
+            usage.seven_day.utilization_pct = Some(100);
+            if usage.seven_day.resets_at.is_none() {
+                usage.seven_day.resets_at = unified_reset.clone();
+            }
+        } else if five_hour_rejected {
+            usage.five_hour.utilization_pct = Some(100);
+            if usage.five_hour.resets_at.is_none() {
+                usage.five_hour.resets_at = unified_reset.clone();
+            }
+        } else {
+            match representative_claim.as_deref() {
+                Some("seven_day") => {
+                    usage.seven_day.utilization_pct = Some(100);
+                    if usage.seven_day.resets_at.is_none() {
+                        usage.seven_day.resets_at = unified_reset.clone();
+                    }
+                }
+                Some("seven_day_sonnet") => {
+                    usage.seven_day_sonnet.utilization_pct = Some(100);
+                    if usage.seven_day_sonnet.resets_at.is_none() {
+                        usage.seven_day_sonnet.resets_at = unified_reset.clone();
+                    }
+                }
+                Some("five_hour") => {
+                    usage.five_hour.utilization_pct = Some(100);
+                    if usage.five_hour.resets_at.is_none() {
+                        usage.five_hour.resets_at = unified_reset.clone();
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+
+    saw_any.then_some(usage)
+}
+
+fn set_bucket_from_headers<F>(
+    header_value: &F,
+    utilization_name: &str,
+    reset_name: &str,
+    utilization_pct: &mut Option<u32>,
+    resets_at: &mut Option<String>,
+) -> bool
+where
+    F: Fn(&str) -> Option<String>,
+{
+    let mut saw_any = false;
+    if let Some(value) = header_value(utilization_name) {
+        *utilization_pct = parse_rate_limit_utilization(&value);
+        saw_any = true;
+    }
+    if let Some(value) = header_value(reset_name) {
+        *resets_at = parse_rate_limit_reset(&value);
+        saw_any = true;
+    }
+    saw_any
+}
+
+fn header_equals<F>(header_value: &F, name: &str, expected: &str) -> bool
+where
+    F: Fn(&str) -> Option<String>,
+{
+    header_value(name)
+        .map(|value| value.eq_ignore_ascii_case(expected))
+        .unwrap_or(false)
+}
+
+fn parse_rate_limit_utilization(raw: &str) -> Option<u32> {
+    let value = raw.trim().parse::<f64>().ok()?;
+    let pct = if value <= 1.0 { value * 100.0 } else { value };
+    Some(pct.round().clamp(0.0, 100.0) as u32)
+}
+
+fn parse_rate_limit_reset(raw: &str) -> Option<String> {
+    let value = raw.trim().parse::<u64>().ok()?;
+    let millis = if value < 1_000_000_000_000 {
+        value.checked_mul(1000)?
+    } else {
+        value
+    };
+    Some(millis.to_string())
 }
 
 fn collect_beta_values(raw: &str, target: &mut Vec<String>, allow_context_1m: bool) {

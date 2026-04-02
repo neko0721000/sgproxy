@@ -373,13 +373,12 @@ async fn maybe_refresh_claudecode_access_token(
                 .as_ref()
                 .and_then(|item| item.rate_limit_tier.clone()),
         };
-        if refreshed.user_email.is_none()
+        if (refreshed.user_email.is_none()
             || refreshed.account_uuid.is_none()
             || refreshed.organization_uuid.is_none()
             || refreshed.subscription_type.is_none()
-            || refreshed.rate_limit_tier.is_none()
-        {
-            if let Ok(profile) = fetch_oauth_profile(&refreshed.access_token).await {
+            || refreshed.rate_limit_tier.is_none())
+            && let Ok(profile) = fetch_oauth_profile(&refreshed.access_token).await {
                 if refreshed.user_email.is_none() {
                     refreshed.user_email = profile.email;
                 }
@@ -396,7 +395,6 @@ async fn maybe_refresh_claudecode_access_token(
                     refreshed.rate_limit_tier = profile.rate_limit_tier;
                 }
             }
-        }
         return Ok(Some(refreshed));
     }
 
