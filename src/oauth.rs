@@ -378,23 +378,24 @@ async fn maybe_refresh_claudecode_access_token(
             || refreshed.organization_uuid.is_none()
             || refreshed.subscription_type.is_none()
             || refreshed.rate_limit_tier.is_none())
-            && let Ok(profile) = fetch_oauth_profile(&refreshed.access_token).await {
-                if refreshed.user_email.is_none() {
-                    refreshed.user_email = profile.email;
-                }
-                if refreshed.account_uuid.is_none() {
-                    refreshed.account_uuid = profile.account_uuid;
-                }
-                if refreshed.organization_uuid.is_none() {
-                    refreshed.organization_uuid = profile.organization_uuid;
-                }
-                if refreshed.subscription_type.is_none() {
-                    refreshed.subscription_type = profile.subscription_type;
-                }
-                if refreshed.rate_limit_tier.is_none() {
-                    refreshed.rate_limit_tier = profile.rate_limit_tier;
-                }
+            && let Ok(profile) = fetch_oauth_profile(&refreshed.access_token).await
+        {
+            if refreshed.user_email.is_none() {
+                refreshed.user_email = profile.email;
             }
+            if refreshed.account_uuid.is_none() {
+                refreshed.account_uuid = profile.account_uuid;
+            }
+            if refreshed.organization_uuid.is_none() {
+                refreshed.organization_uuid = profile.organization_uuid;
+            }
+            if refreshed.subscription_type.is_none() {
+                refreshed.subscription_type = profile.subscription_type;
+            }
+            if refreshed.rate_limit_tier.is_none() {
+                refreshed.rate_limit_tier = profile.rate_limit_tier;
+            }
+        }
         return Ok(Some(refreshed));
     }
 

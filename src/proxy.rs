@@ -932,7 +932,10 @@ fn apply_magic_trigger_to_block(
         return;
     };
 
-    if *remaining_slots > 0 && !block_map.contains_key("cache_control") {
+    if *remaining_slots > 0
+        && !block_map.contains_key("cache_control")
+        && block_supports_direct_cache_control(block_map)
+    {
         block_map.insert("cache_control".to_string(), cache_control_ephemeral(ttl));
         *remaining_slots = remaining_slots.saturating_sub(1);
     }
@@ -995,13 +998,30 @@ fn count_cache_controls_in_content(content: &Value) -> usize {
     match content {
         Value::Array(items) => items
             .iter()
-            .filter(|item| {
-                item.as_object()
-                    .is_some_and(|map| map.contains_key("cache_control"))
-            })
+            .filter(|item| block_has_direct_cache_control(item))
             .count(),
-        Value::Object(map) => usize::from(map.contains_key("cache_control")),
+        Value::Object(map) => usize::from(
+            map.contains_key("cache_control") && block_supports_direct_cache_control(map),
+        ),
         _ => 0,
+    }
+}
+
+fn block_has_direct_cache_control(block: &Value) -> bool {
+    block.as_object().is_some_and(|map| {
+        map.contains_key("cache_control") && block_supports_direct_cache_control(map)
+    })
+}
+
+fn block_supports_direct_cache_control(block_map: &serde_json::Map<String, Value>) -> bool {
+    match block_map.get("type").and_then(Value::as_str) {
+        Some("thinking" | "redacted_thinking") => false,
+        Some("text") => block_map
+            .get("text")
+            .and_then(Value::as_str)
+            .is_some_and(|text| !text.trim().is_empty()),
+        Some(_) => true,
+        None => false,
     }
 }
 
@@ -1153,6 +1173,70 @@ mod tests {
                 .as_str()
                 .unwrap()
                 .contains(MAGIC_TRIGGER_5M_ID)
+        );
+    }
+
+    #[test]
+    fn skips_magic_string_cache_control_for_empty_text_blocks() {
+        let mut body = json!({
+            "messages": [
+                {
+                    "role":"user",
+                    "content":[
+                        {
+                            "type":"text",
+                            "text": MAGIC_TRIGGER_5M_ID
+                        }
+                    ]
+                }
+            ]
+        });
+
+        apply_magic_string_cache_control_triggers(&mut body);
+
+        let block = &body["messages"][0]["content"][0];
+        assert!(block.get("cache_control").is_none());
+        assert_eq!(block["text"], json!(""));
+    }
+
+    #[test]
+    fn ignores_invalid_existing_cache_controls_when_counting_slots() {
+        let mut body = json!({
+            "system": [
+                {
+                    "type":"thinking",
+                    "thinking":"internal",
+                    "signature":"sig",
+                    "cache_control":{"type":"ephemeral","ttl":"5m"}
+                },
+                {
+                    "type":"text",
+                    "text":"",
+                    "cache_control":{"type":"ephemeral","ttl":"5m"}
+                }
+            ],
+            "messages": [
+                {
+                    "role":"user",
+                    "content":[
+                        {"type":"text","text": format!("one {}", MAGIC_TRIGGER_5M_ID)},
+                        {"type":"text","text": format!("two {}", MAGIC_TRIGGER_5M_ID)},
+                        {"type":"text","text": format!("three {}", MAGIC_TRIGGER_5M_ID)},
+                        {"type":"text","text": format!("four {}", MAGIC_TRIGGER_5M_ID)}
+                    ]
+                }
+            ]
+        });
+
+        apply_magic_string_cache_control_triggers(&mut body);
+
+        let blocks = body["messages"][0]["content"].as_array().unwrap();
+        assert_eq!(
+            blocks
+                .iter()
+                .filter(|block| block.get("cache_control").is_some())
+                .count(),
+            4
         );
     }
 
