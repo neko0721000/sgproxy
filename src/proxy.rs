@@ -481,15 +481,47 @@ fn request_claudecode_version(req: &Request) -> String {
         })
 }
 
+/// Models that tolerate sampling parameters. For these we only strip
+/// `top_p` when `temperature` is also present (the two interact poorly
+/// on Claude). Any model NOT in this list has `temperature`, `top_p`,
+/// and `top_k` stripped unconditionally — the conservative default the
+/// OAuth claudecode upstream expects.
+///
+/// Entries are prefixes so dated variants (e.g. `claude-sonnet-4-6-20260101`)
+/// also match. 4.0-generation needs two prefixes each (`-0` alias and
+/// bare `-20` dated form) because the dated ID drops the `-0`.
+const SAMPLING_TOLERANT_MODELS: &[&str] = &[
+    "claude-sonnet-4-6",
+    "claude-haiku-4-5",
+    "claude-sonnet-4-5",
+    "claude-opus-4-5",
+    "claude-opus-4-1",
+    "claude-sonnet-4-0",
+    "claude-sonnet-4-20",
+    "claude-opus-4-0",
+    "claude-opus-4-20",
+    "claude-3-haiku",
+];
+
 fn normalize_claudecode_sampling(body: &mut Value) {
     let Some(map) = body.as_object_mut() else {
         return;
     };
 
-    let has_temperature = map.get("temperature").and_then(Value::as_f64).is_some();
-    let has_top_p = map.get("top_p").and_then(Value::as_f64).is_some();
-    if has_temperature && has_top_p {
+    let tolerant = map.get("model").and_then(Value::as_str).is_some_and(|m| {
+        SAMPLING_TOLERANT_MODELS
+            .iter()
+            .any(|&prefix| m.starts_with(prefix))
+    });
+
+    if tolerant {
+        if map.contains_key("temperature") {
+            map.remove("top_p");
+        }
+    } else {
+        map.remove("temperature");
         map.remove("top_p");
+        map.remove("top_k");
     }
 }
 
@@ -1304,6 +1336,7 @@ mod tests {
     #[test]
     fn drops_top_p_when_temperature_is_present() {
         let mut body = json!({
+            "model": "claude-sonnet-4-6",
             "temperature": 0.7,
             "top_p": 0.9,
             "messages": []
@@ -1318,6 +1351,7 @@ mod tests {
     #[test]
     fn keeps_top_p_when_temperature_is_absent() {
         let mut body = json!({
+            "model": "claude-sonnet-4-6",
             "top_p": 0.9,
             "messages": []
         });
@@ -1325,6 +1359,54 @@ mod tests {
         normalize_claudecode_sampling(&mut body);
 
         assert_eq!(body["top_p"], json!(0.9));
+    }
+
+    #[test]
+    fn strips_all_sampling_for_non_tolerant_model() {
+        let mut body = json!({
+            "model": "claude-opus-4-6",
+            "temperature": 0.7,
+            "top_p": 0.9,
+            "top_k": 40,
+            "messages": []
+        });
+
+        normalize_claudecode_sampling(&mut body);
+
+        assert!(body.get("temperature").is_none());
+        assert!(body.get("top_p").is_none());
+        assert!(body.get("top_k").is_none());
+    }
+
+    #[test]
+    fn strips_all_sampling_when_model_missing() {
+        let mut body = json!({
+            "temperature": 0.7,
+            "top_p": 0.9,
+            "top_k": 40,
+            "messages": []
+        });
+
+        normalize_claudecode_sampling(&mut body);
+
+        assert!(body.get("temperature").is_none());
+        assert!(body.get("top_p").is_none());
+        assert!(body.get("top_k").is_none());
+    }
+
+    #[test]
+    fn keeps_top_k_for_tolerant_model() {
+        let mut body = json!({
+            "model": "claude-sonnet-4-6-20260101",
+            "temperature": 0.7,
+            "top_k": 40,
+            "messages": []
+        });
+
+        normalize_claudecode_sampling(&mut body);
+
+        assert_eq!(body["temperature"], json!(0.7));
+        assert_eq!(body["top_k"], json!(40));
     }
 
     #[test]
