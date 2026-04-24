@@ -20,7 +20,7 @@ pub const MAGIC_TRIGGER_5M_ID: &str =
 pub const MAGIC_TRIGGER_1H_ID: &str =
     "GPROXY_MAGIC_STRING_TRIGGER_CACHING_CREATE_1FAS5GV9R5H29T5Y2J9584K6O95M2NBVW52C95CX984FRJY";
 pub const CLAUDE_CODE_OAUTH_CLIENT_ID: &str = "9d1c250a-e61b-44d9-88ed-5944d1962f5e";
-pub const CLAUDE_CODE_OAUTH_SCOPE: &str = "user:profile user:inference user:sessions:claude_code";
+pub const CLAUDE_CODE_OAUTH_SCOPE: &str = "user:profile user:inference user:sessions:claude_code user:mcp_servers user:file_upload";
 pub const OAUTH_STATE_TTL_MS: u64 = 10 * 60 * 1000;
 pub const FIVE_HOUR_WINDOW_MS: u64 = 5 * 60 * 60 * 1000;
 pub const SEVEN_DAY_WINDOW_MS: u64 = 7 * 24 * 60 * 60 * 1000;
